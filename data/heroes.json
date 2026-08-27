@@ -1,0 +1,71 @@
+{
+  "_comment": "가신(소녀) 정의. 40명 최종. 프로토타입은 상위 3명만 사용.",
+  "_schema": {
+    "id": "고유 ID (snake_case)",
+    "name": "표시 이름",
+    "floor": "배치된 층 (1-100). 이 층 보스 격파 시 해금",
+    "weapon_id": "weapons.json 참조",
+    "passive": "무기 공유 시 차별화하는 패시브",
+    "base_stats": "레벨 1 기준 스탯",
+    "growth": "레벨당 증가량",
+    "grants_skill": "해금 시 아이다에게 전수하는 스킬 ID (없으면 null)",
+    "tier": "등급 1-3. 각성 비용에 영향"
+  },
+  "heroes": [
+    {
+      "id": "lien",
+      "name": "리엔",
+      "floor": 6,
+      "weapon_id": "whip",
+      "passive": { "type": "none" },
+      "base_stats": { "atk": 10.0, "atk_speed": 1.0, "range": 120.0, "crit": 0.05 },
+      "growth": { "atk": 2.0, "atk_speed": 0.03 },
+      "grants_skill": "buff_power",
+      "tier": 1
+    },
+    {
+      "id": "sera",
+      "name": "세라",
+      "floor": 12,
+      "weapon_id": "bolt",
+      "passive": { "type": "none" },
+      "base_stats": { "atk": 8.0, "atk_speed": 1.4, "range": 300.0, "crit": 0.08 },
+      "growth": { "atk": 1.6, "atk_speed": 0.04 },
+      "grants_skill": "elem_fire",
+      "tier": 1
+    },
+    {
+      "id": "nina",
+      "name": "니나",
+      "floor": 18,
+      "weapon_id": "homing",
+      "passive": { "type": "none" },
+      "base_stats": { "atk": 6.0, "atk_speed": 1.8, "range": 400.0, "crit": 0.05 },
+      "growth": { "atk": 1.2, "atk_speed": 0.05 },
+      "grants_skill": "heal_instant",
+      "tier": 1
+    },
+    {
+      "id": "_template_shared_weapon",
+      "name": "(템플릿) 무기 공유 + 패시브 차별",
+      "floor": 0,
+      "weapon_id": "whip",
+      "passive": { "type": "pierce", "value": 1 },
+      "base_stats": { "atk": 11.0, "atk_speed": 0.9, "range": 130.0, "crit": 0.05 },
+      "growth": { "atk": 2.2, "atk_speed": 0.03 },
+      "grants_skill": null,
+      "tier": 2
+    }
+  ],
+  "_passive_types": [
+    "none",
+    "pierce (관통 +N)",
+    "explode_on_kill (처치 시 폭발)",
+    "multi_shot (투사체 +N)",
+    "chain (연쇄 N회)",
+    "lifesteal (흡혈 N%)",
+    "slow_on_hit (명중 시 둔화)",
+    "crit_boost (치명타율 +N%)",
+    "range_boost (사거리 +N%)"
+  ]
+}

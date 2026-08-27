@@ -1,0 +1,35 @@
+{
+  "_comment": "적 3종. AI는 단순 직진. 경로탐색 사용 금지.",
+  "enemies": [
+    {
+      "id": "rusher",
+      "name": "돌진체",
+      "hp": 20.0, "speed": 90.0, "damage": 8.0, "radius": 14.0,
+      "ai": "straight_to_player",
+      "shard_value": 1
+    },
+    {
+      "id": "shooter",
+      "name": "사격체",
+      "hp": 14.0, "speed": 45.0, "damage": 6.0, "radius": 12.0,
+      "ai": "keep_distance_and_shoot",
+      "attack": { "range": 280.0, "interval": 2.0, "projectile_speed": 220.0 },
+      "shard_value": 2
+    },
+    {
+      "id": "tank",
+      "name": "중갑체",
+      "hp": 120.0, "speed": 35.0, "damage": 18.0, "radius": 24.0,
+      "ai": "straight_to_player",
+      "defense": 5.0,
+      "shard_value": 5
+    }
+  ],
+  "wave_pattern": {
+    "_comment": "층당 2~3분. 시간에 따라 스폰 밀도 상승",
+    "spawn_interval_start": 1.2,
+    "spawn_interval_end": 0.3,
+    "max_alive": 300,
+    "spawn_distance": 700.0
+  }
+}

@@ -1,0 +1,132 @@
+{
+  "_comment": "무기 15~20종. 캐릭터와 분리. 여러 캐릭터가 공유한다.",
+  "_schema": {
+    "id": "고유 ID",
+    "category": "auto_fire | persistent | summon | special",
+    "impl_cost": "구현 난이도 low|mid|high. low부터 만든다",
+    "fire_mode": "발사 방식",
+    "params": "무기별 파라미터"
+  },
+  "weapons": [
+    {
+      "id": "whip",
+      "name": "채찍",
+      "category": "auto_fire",
+      "impl_cost": "low",
+      "fire_mode": "melee_arc",
+      "params": { "arc_deg": 90, "hits": 1, "knockback": 20.0, "duration": 0.2 }
+    },
+    {
+      "id": "bolt",
+      "name": "직사 화살",
+      "category": "auto_fire",
+      "impl_cost": "low",
+      "fire_mode": "projectile_straight",
+      "params": { "speed": 500.0, "pierce": 0, "count": 1, "lifetime": 1.5 }
+    },
+    {
+      "id": "homing",
+      "name": "유도탄",
+      "category": "auto_fire",
+      "impl_cost": "low",
+      "fire_mode": "projectile_homing",
+      "params": { "speed": 350.0, "turn_rate": 4.0, "count": 2, "lifetime": 3.0 }
+    },
+    {
+      "id": "boomerang",
+      "name": "부메랑",
+      "category": "auto_fire",
+      "impl_cost": "low",
+      "fire_mode": "projectile_return",
+      "params": { "speed": 400.0, "range": 350.0, "pierce": 99 }
+    },
+    {
+      "id": "laser",
+      "name": "관통 레이저",
+      "category": "auto_fire",
+      "impl_cost": "low",
+      "fire_mode": "beam",
+      "params": { "length": 600.0, "width": 24.0, "duration": 0.3 }
+    },
+    {
+      "id": "aura",
+      "name": "주변 오라",
+      "category": "persistent",
+      "impl_cost": "mid",
+      "fire_mode": "area_around_self",
+      "params": { "radius": 140.0, "tick": 0.5 }
+    },
+    {
+      "id": "field",
+      "name": "장판",
+      "category": "persistent",
+      "impl_cost": "mid",
+      "fire_mode": "area_placed",
+      "params": { "radius": 100.0, "duration": 4.0, "tick": 0.4 }
+    },
+    {
+      "id": "mine",
+      "name": "지뢰",
+      "category": "persistent",
+      "impl_cost": "mid",
+      "fire_mode": "trap",
+      "params": { "trigger_radius": 50.0, "blast_radius": 120.0, "max_active": 5 }
+    },
+    {
+      "id": "orbit",
+      "name": "회전 위성",
+      "category": "persistent",
+      "impl_cost": "mid",
+      "fire_mode": "orbital",
+      "params": { "count": 2, "radius": 90.0, "rot_speed": 3.0 }
+    },
+    {
+      "id": "minion",
+      "name": "추종 미니언",
+      "category": "summon",
+      "impl_cost": "high",
+      "fire_mode": "summon_follow",
+      "params": { "count": 1, "lifetime": -1 }
+    },
+    {
+      "id": "turret",
+      "name": "자동 포탑",
+      "category": "summon",
+      "impl_cost": "high",
+      "fire_mode": "summon_static",
+      "params": { "count": 1, "lifetime": 15.0 }
+    },
+    {
+      "id": "swarm",
+      "name": "소환수 무리",
+      "category": "summon",
+      "impl_cost": "high",
+      "fire_mode": "summon_burst",
+      "params": { "count": 5, "lifetime": 8.0 }
+    },
+    {
+      "id": "nova",
+      "name": "화면 전체 공격",
+      "category": "special",
+      "impl_cost": "high",
+      "fire_mode": "screen_wide",
+      "params": { "cooldown_mult": 4.0 }
+    },
+    {
+      "id": "ricochet",
+      "name": "반사 투사체",
+      "category": "special",
+      "impl_cost": "high",
+      "fire_mode": "projectile_bounce",
+      "params": { "bounces": 4, "speed": 450.0 }
+    },
+    {
+      "id": "stack_bomb",
+      "name": "스택형 폭발",
+      "category": "special",
+      "impl_cost": "high",
+      "fire_mode": "stack_detonate",
+      "params": { "stacks_to_blast": 5, "blast_radius": 150.0 }
+    }
+  ]
+}
