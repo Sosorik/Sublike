@@ -33,11 +33,20 @@
 - [완료] **1주차 목표 달성** — 적 1마리가 오른쪽에서 왼쪽으로 이동 → 아이다 도달 확인
   `--headless` 실행 로그: `적이 아이다에 도달 — lane=front` (1400→120, 70px/s, 약 18초)
 
+- [완료] JSON 데이터 로더 — `scripts/data/data_loader.gd` (autoload `DataLoader`, `project.godot`에 등록)
+  7개 그룹 색인: heroes 3 / enemies 3 / attack_types 10 / hero_skills 3 / aida_skills 12 / run_upgrades 8 / segments 4
+  모든 접근자는 `duplicate(true)` 깊은 복사본 반환 — 원본 캐시는 밖으로 나가지 않는다
+  `_` 접두 항목(`_template`)은 색인에서 제외
+
 ### 알아둘 것
 - `.tscn`에서 노드 참조 export(`@export var x: Node2D`)는 노드 헤더에
   `node_paths=PackedStringArray("x")`가 있어야 해석된다. `x = NodePath("...")`만 쓰면 null이 된다
 - 헤드리스 검증: `~/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_console.exe`
   `--headless --path C:/Users/kimcg/Desktop/LilaQuest/Sublike` (일반 exe는 stdout이 안 잡힌다)
+- **JSON 숫자는 전부 float으로 들어온다.** `Array.has()`는 타입까지 따지므로
+  `6 in [1.0, 2.0, ...]` 는 false다 (`fl[5] == 6` 은 true인데도).
+  JSON에서 읽은 정수를 비교할 땐 반드시 `int()`로 맞춘다. 층·티어·스택수 전부 해당
 
 - [ ] 공식 튜토리얼 "Your first 2D game" 완주
-- [ ] 2주차: JSON 데이터 로더 / 오브젝트 풀 / 웨이브 스포너
+- [ ] 2주차 남은 것: 오브젝트 풀 → 적 3종 → 웨이브 스포너 → 슬롯/가신 배치
+      → 공격 타입 3종 → DamagePacket → 아이다 HP/실패 처리

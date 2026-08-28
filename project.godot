@@ -16,6 +16,10 @@ run/main_scene="res://scenes/battle/battle.tscn"
 config/features=PackedStringArray("4.7", "Mobile")
 config/icon="res://icon.svg"
 
+[autoload]
+
+DataLoader="*res://scripts/data/data_loader.gd"
+
 [display]
 
 window/size/viewport_width=1280
