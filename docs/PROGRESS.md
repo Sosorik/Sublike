@@ -50,12 +50,22 @@
   `lane_pref` 반영 — 중갑체는 전열 고정, 나머지는 레인 순환 (고정 적은 순환 카운터를 소비하지 않는다)
   임시 아트: `debug_color` / `debug_scale` 을 enemies.json 에 추가. 최종 스프라이트 나오면 제거
   검증: 돌격체 70/60, 사격체 40/40, 중갑체 30/260 — 풀 prewarm 16 안에서 신규 생성 0
+- [완료] 웨이브 스포너 — `scripts/core/enemy_spawner.gd` (Battle 자식 노드)
+  상태기계 SPAWNING → WAITING_CLEAR → INTERMISSION → 다음 웨이브 → DONE
+  `wave_started` / `wave_cleared` / `floor_cleared` 시그널. `max_alive` 초과 시 스폰 보류
+  웨이브 구성은 `enemies.json` 의 `wave_pattern.waves` (임시 수치. 밸런스는 5~6주차)
+  종류가 뭉치지 않게 라운드로빈으로 편다. 난수 없음 — 실행마다 결과가 같다
+  검증(time_scale 20배): 5웨이브 38마리 전부 클리어, 풀 신규 생성 0 (prewarm 24로 해결)
+- [완료] `battle.gd` 축소 — 스폰 책임을 스포너로 넘기고 로그/레인 안내선만 담당
 
 ### 알아둘 것
 - `.tscn`에서 노드 참조 export(`@export var x: Node2D`)는 노드 헤더에
   `node_paths=PackedStringArray("x")`가 있어야 해석된다. `x = NodePath("...")`만 쓰면 null이 된다
 - 헤드리스 검증: `~/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_console.exe`
   `--headless --path C:/Users/kimcg/Desktop/LilaQuest/Sublike` (일반 exe는 stdout이 안 잡힌다)
+- **자식 노드의 `_ready()` 가 부모보다 먼저 돈다.** 자식이 `_ready()` 에서 바로 시그널을
+  emit 하면 부모가 연결하기 전이라 놓친다. `start.call_deferred()` 로 트리 전체가 준비된 뒤 시작한다
+- 긴 진행을 검증할 땐 `Engine.time_scale` 을 올린다. 층 하나(실시간 3분+)를 10초에 확인
 - `--script` 모드에서는 autoload 가 **전역 식별자로 잡히지 않는다** (`Identifier not found: ObjectPool`).
   런타임에는 존재하므로 `root.get_node_or_null("ObjectPool")` 로 접근한다. 게임 실행에서는 정상
 - **JSON 숫자는 전부 float으로 들어온다.** `Array.has()`는 타입까지 따지므로
@@ -63,5 +73,5 @@
   JSON에서 읽은 정수를 비교할 땐 반드시 `int()`로 맞춘다. 층·티어·스택수 전부 해당
 
 - [ ] 공식 튜토리얼 "Your first 2D game" 완주
-- [ ] 2주차 남은 것: 웨이브 스포너 → 슬롯/가신 배치
+- [ ] 2주차 남은 것: 슬롯/가신 배치
       → 공격 타입 3종 → DamagePacket → 아이다 HP/실패 처리

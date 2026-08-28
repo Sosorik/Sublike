@@ -1,0 +1,235 @@
+extends Node
+
+## 웨이브 스포너. data/enemies.json 의 wave_pattern 을 그대로 따른다.
+##
+## 층당 웨이브 5 (waves_per_floor), 웨이브 사이 정비 시간 (intermission_sec).
+## 한 층만 돈다. 다음 층으로 넘기는 건 4주차 "층 진행" 항목이다.
+##
+## 웨이브 클리어 조건 = 스폰 큐가 비었고 살아있는 적이 0.
+## 지금은 적을 죽일 수단이 없어서 전부 아이다까지 걸어가야 클리어된다.
+## DamagePacket 항목이 붙으면 자연스럽게 "처치로 클리어"가 된다.
+
+## 웨이브가 시작됐다.
+signal wave_started(wave_number: int, total_waves: int, enemy_count: int)
+## 웨이브의 적이 전부 사라졌다.
+signal wave_cleared(wave_number: int)
+## 층의 마지막 웨이브까지 끝났다.
+signal floor_cleared()
+
+enum State { IDLE, SPAWNING, WAITING_CLEAR, INTERMISSION, DONE }
+
+## 인스펙터에서 scenes/entities/enemy.tscn 을 연결한다.
+@export var enemy_scene: PackedScene
+
+## 스폰한 적을 담을 노드. 인스펙터에서 Enemies 를 연결한다.
+@export var enemies_root: Node2D
+
+## 전투 시작 전 미리 만들어 둘 적 수. 가장 큰 웨이브보다 넉넉하게.
+@export var prewarm_count: int = 24
+
+## false 면 start() 를 직접 불러야 시작한다.
+@export var auto_start: bool = true
+
+## 스폰 한 마리마다 로그를 찍는다. 검증할 때만 켠다.
+@export var verbose: bool = false
+
+## wave_pattern 을 읽지 못했을 때만 쓰는 대비값.
+const FALLBACK_INTERMISSION: float = 3.0
+const FALLBACK_INTERVAL: float = 1.0
+const FALLBACK_MAX_ALIVE: int = 100
+
+var _waves: Array = []
+var _rows: Dictionary = {}          ## enemy_id → 데이터 (1회만 복사해서 재사용)
+var _queue: Array[String] = []      ## 이번 웨이브에 남은 스폰 목록
+var _wave_index: int = -1           ## 0-based
+var _alive: int = 0
+var _timer: float = 0.0
+var _interval: float = FALLBACK_INTERVAL
+var _intermission: float = FALLBACK_INTERMISSION
+var _max_alive: int = FALLBACK_MAX_ALIVE
+var _lane_index: int = 0
+var _state: State = State.IDLE
+
+
+func _ready() -> void:
+	if enemy_scene == null:
+		push_error("EnemySpawner: enemy_scene 이 비어 있다.")
+		return
+	if enemies_root == null:
+		push_error("EnemySpawner: enemies_root 가 비어 있다.")
+		return
+
+	if not _load_pattern():
+		return
+
+	ObjectPool.prewarm(enemy_scene, prewarm_count)
+	if auto_start:
+		# 자식의 _ready() 는 부모보다 먼저 돈다. 여기서 바로 시작하면
+		# 부모가 시그널을 연결하기 전에 1번 웨이브가 시작돼 wave_started 를 놓친다.
+		start.call_deferred()
+
+
+## 1번 웨이브부터 시작한다.
+func start() -> void:
+	if _waves.is_empty():
+		push_error("EnemySpawner: 웨이브 데이터가 없어 시작할 수 없다.")
+		return
+	_wave_index = -1
+	_alive = 0
+	_queue.clear()
+	_next_wave()
+
+
+func get_state() -> State:
+	return _state
+
+
+func get_alive_count() -> int:
+	return _alive
+
+
+## 현재 웨이브 번호(1-based). 아직 시작 전이면 0.
+func get_wave_number() -> int:
+	return _wave_index + 1
+
+
+func _process(delta: float) -> void:
+	match _state:
+		State.SPAWNING:
+			_tick_spawning(delta)
+		State.WAITING_CLEAR:
+			if _alive <= 0:
+				wave_cleared.emit(get_wave_number())
+				_timer = _intermission
+				_state = State.INTERMISSION
+		State.INTERMISSION:
+			_timer -= delta
+			if _timer <= 0.0:
+				_next_wave()
+		_:
+			pass
+
+
+## ---------------------------------------------------------------- 내부
+
+func _tick_spawning(delta: float) -> void:
+	_timer -= delta
+	if _timer > 0.0:
+		return
+
+	# 화면이 꽉 찼으면 자리가 날 때까지 스폰을 미룬다.
+	if _alive >= _max_alive:
+		return
+
+	_spawn_one(_queue.pop_front())
+	_timer = _interval
+
+	if _queue.is_empty():
+		_state = State.WAITING_CLEAR
+
+
+func _next_wave() -> void:
+	_wave_index += 1
+	if _wave_index >= _waves.size():
+		_state = State.DONE
+		floor_cleared.emit()
+		return
+
+	var wave: Dictionary = _waves[_wave_index]
+	_interval = float(wave.get("spawn_interval", FALLBACK_INTERVAL))
+	_queue = _build_queue(wave.get("entries", []) as Array)
+	_timer = 0.0
+	_state = State.SPAWNING
+	wave_started.emit(get_wave_number(), _waves.size(), _queue.size())
+
+
+## entries 를 스폰 순서 목록으로 편다.
+## 종류별로 뭉치지 않도록 번갈아 낸다. 난수를 쓰지 않아 실행마다 결과가 같다.
+func _build_queue(entries: Array) -> Array[String]:
+	var remaining: Array[int] = []
+	var ids: Array[String] = []
+	for e in entries:
+		var entry: Dictionary = e
+		ids.append(str(entry.get("enemy_id", "")))
+		remaining.append(int(entry.get("count", 0)))
+
+	var out: Array[String] = []
+	var moved: bool = true
+	while moved:
+		moved = false
+		for i in ids.size():
+			if remaining[i] > 0:
+				out.append(ids[i])
+				remaining[i] -= 1
+				moved = true
+	return out
+
+
+func _spawn_one(enemy_id: String) -> void:
+	var row: Dictionary = _rows.get(enemy_id, {})
+	if row.is_empty():
+		push_error("EnemySpawner: 알 수 없는 적 '%s'" % enemy_id)
+		return
+
+	var enemy: Enemy = ObjectPool.acquire(enemy_scene) as Enemy
+	if enemy == null:
+		push_error("EnemySpawner: enemy_scene 루트에 enemy.gd 가 없다.")
+		return
+
+	# 재사용된 적은 이미 연결돼 있다. 중복 연결하면 시그널이 두 번 온다.
+	if not enemy.reached_aida.is_connected(_on_enemy_reached_aida):
+		enemy.reached_aida.connect(_on_enemy_reached_aida)
+
+	enemy.setup(row)
+	enemies_root.add_child(enemy)
+	enemy.spawn_at(_pick_lane(enemy.get_lane_pref()))
+	_alive += 1
+
+	if verbose:
+		print("  스폰 %s lane=%s (alive=%d, 남은 큐=%d)" % [
+			enemy.enemy_id, enemy.get_lane(), _alive, _queue.size()
+		])
+
+
+## lane_pref 를 실제 레인으로 바꾼다. "any" 면 순환, 아니면 지정 레인.
+## 지정 레인 적은 순환 카운터를 소비하지 않는다.
+func _pick_lane(lane_pref: String) -> String:
+	if lane_pref != "any":
+		if lane_pref in BattleLayout.LINES:
+			return lane_pref
+		push_warning("EnemySpawner: 알 수 없는 lane_pref '%s'" % lane_pref)
+
+	var lane: String = BattleLayout.LINES[_lane_index]
+	_lane_index = (_lane_index + 1) % BattleLayout.LINES.size()
+	return lane
+
+
+func _on_enemy_reached_aida(enemy: Enemy) -> void:
+	# 아이다 HP 감소는 2주차 마지막 항목에서 붙인다.
+	_alive = maxi(0, _alive - 1)
+	ObjectPool.release(enemy)
+
+
+func _load_pattern() -> bool:
+	var pattern: Dictionary = DataLoader.get_wave_pattern()
+	if pattern.is_empty():
+		push_error("EnemySpawner: wave_pattern 을 읽지 못했다.")
+		return false
+
+	_waves = pattern.get("waves", []) as Array
+	if _waves.is_empty():
+		push_error("EnemySpawner: wave_pattern.waves 가 비어 있다.")
+		return false
+
+	var declared: int = int(pattern.get("waves_per_floor", _waves.size()))
+	if declared != _waves.size():
+		push_warning("EnemySpawner: waves_per_floor(%d) 와 waves 개수(%d) 가 다르다." % [
+			declared, _waves.size()
+		])
+
+	_intermission = float(pattern.get("intermission_sec", FALLBACK_INTERMISSION))
+	_max_alive = int(pattern.get("max_alive", FALLBACK_MAX_ALIVE))
+
+	for id in DataLoader.ids(DataLoader.GROUP_ENEMIES):
+		_rows[id] = DataLoader.get_enemy(id)
+	return true

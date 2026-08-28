@@ -12,6 +12,14 @@
     "intermission_sec": 3.0,
     "spawn_x": 1400.0,
     "lanes_y": { "front": 380, "mid": 300, "back": 220 },
-    "max_alive": 100
+    "max_alive": 100,
+    "_waves_note": "임시 수치. 밸런스는 5~6주차에 잡는다. 여기 숫자만 고치면 된다.",
+    "waves": [
+      { "spawn_interval": 1.2, "entries": [ { "enemy_id": "charger", "count": 4 } ] },
+      { "spawn_interval": 1.1, "entries": [ { "enemy_id": "charger", "count": 4 }, { "enemy_id": "shooter", "count": 2 } ] },
+      { "spawn_interval": 1.0, "entries": [ { "enemy_id": "charger", "count": 5 }, { "enemy_id": "shooter", "count": 3 } ] },
+      { "spawn_interval": 0.9, "entries": [ { "enemy_id": "charger", "count": 4 }, { "enemy_id": "shooter", "count": 3 }, { "enemy_id": "armored", "count": 1 } ] },
+      { "spawn_interval": 0.8, "entries": [ { "enemy_id": "charger", "count": 6 }, { "enemy_id": "shooter", "count": 4 }, { "enemy_id": "armored", "count": 2 } ] }
+    ]
   }
 }
