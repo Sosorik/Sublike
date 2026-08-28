@@ -3,14 +3,24 @@
 [ext_resource type="Script" path="res://scripts/core/battle.gd" id="1_battle"]
 [ext_resource type="PackedScene" path="res://scenes/entities/enemy.tscn" id="2_enemy"]
 [ext_resource type="Script" path="res://scripts/core/enemy_spawner.gd" id="3_spawner"]
+[ext_resource type="Script" path="res://scripts/core/party.gd" id="4_party"]
+[ext_resource type="PackedScene" path="res://scenes/entities/unit.tscn" id="5_unit"]
 
-[node name="Battle" type="Node2D" unique_id=198505537 node_paths=PackedStringArray("spawner")]
+[node name="Battle" type="Node2D" unique_id=1658866797 node_paths=PackedStringArray("spawner", "party")]
 script = ExtResource("1_battle")
 spawner = NodePath("EnemySpawner")
+party = NodePath("Party")
 
-[node name="Enemies" type="Node2D" parent="." unique_id=1876003993]
+[node name="Enemies" type="Node2D" parent="." unique_id=138943624]
 
-[node name="EnemySpawner" type="Node" parent="." unique_id=13568884 node_paths=PackedStringArray("enemies_root")]
+[node name="Lanes" type="Node2D" parent="." unique_id=766421163]
+
+[node name="Party" type="Node" parent="." unique_id=470684809 node_paths=PackedStringArray("units_root")]
+script = ExtResource("4_party")
+unit_scene = ExtResource("5_unit")
+units_root = NodePath("../Lanes")
+
+[node name="EnemySpawner" type="Node" parent="." unique_id=1325633461 node_paths=PackedStringArray("enemies_root")]
 script = ExtResource("3_spawner")
 enemy_scene = ExtResource("2_enemy")
 enemies_root = NodePath("../Enemies")

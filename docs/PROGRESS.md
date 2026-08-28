@@ -57,12 +57,22 @@
   종류가 뭉치지 않게 라운드로빈으로 편다. 난수 없음 — 실행마다 결과가 같다
   검증(time_scale 20배): 5웨이브 38마리 전부 클리어, 풀 신규 생성 0 (prewarm 24로 해결)
 - [완료] `battle.gd` 축소 — 스폰 책임을 스포너로 넘기고 로그/레인 안내선만 담당
+- [완료] 슬롯 3개 + 가신 3명 배치 — `scripts/combat/unit.gd`, `scripts/core/party.gd`, `scenes/entities/unit.tscn`
+  리엔 front(600,380) atk12 range90 hp220 / 세라 mid(450,300) atk22 range320 hp110 / 니나 back(300,220) atk16 range520 hp80
+  좌표는 `BattleLayout.slot_position()` — ARCHITECTURE 좌표표와 일치 확인
+  가신은 풀을 쓰지 않는다 (몇 명뿐이고 끝까지 살아 있다). 라인당 1칸, 중복 배치는 오류
+  heroes.json 에 임시 아트 `debug_color`/`debug_scale` 추가
+  아직 공격하지 않는다 — 적이 그냥 지나간다. 다음 항목에서 붙는다
 
 ### 알아둘 것
 - `.tscn`에서 노드 참조 export(`@export var x: Node2D`)는 노드 헤더에
   `node_paths=PackedStringArray("x")`가 있어야 해석된다. `x = NodePath("...")`만 쓰면 null이 된다
 - 헤드리스 검증: `~/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_console.exe`
   `--headless --path C:/Users/kimcg/Desktop/LilaQuest/Sublike` (일반 exe는 stdout이 안 잡힌다)
+- **새 `class_name` 은 `--import` 를 돌려야 전역 등록된다.** 등록 전에 그 클래스를 쓰는
+  스크립트는 파싱에 실패하고, 그 상태로 씬을 저장하면 **export 값이 전부 null 로 날아간다.**
+  새 class_name 을 추가했으면 씬을 건드리기 전에 `--import` 부터 돌린다
+- 형제 노드의 `_ready()` 는 씬 트리에 놓인 순서대로 돈다. 순서가 중요하면 노드 순서로 정한다
 - **자식 노드의 `_ready()` 가 부모보다 먼저 돈다.** 자식이 `_ready()` 에서 바로 시그널을
   emit 하면 부모가 연결하기 전이라 놓친다. `start.call_deferred()` 로 트리 전체가 준비된 뒤 시작한다
 - 긴 진행을 검증할 땐 `Engine.time_scale` 을 올린다. 층 하나(실시간 3분+)를 10초에 확인
@@ -73,5 +83,4 @@
   JSON에서 읽은 정수를 비교할 땐 반드시 `int()`로 맞춘다. 층·티어·스택수 전부 해당
 
 - [ ] 공식 튜토리얼 "Your first 2D game" 완주
-- [ ] 2주차 남은 것: 슬롯/가신 배치
-      → 공격 타입 3종 → DamagePacket → 아이다 HP/실패 처리
+- [ ] 2주차 남은 것: 공격 타입 3종 → DamagePacket → 아이다 HP/실패 처리

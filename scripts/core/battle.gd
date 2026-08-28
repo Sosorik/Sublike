@@ -8,6 +8,9 @@ extends Node2D
 ## 인스펙터에서 EnemySpawner 노드를 연결한다.
 @export var spawner: Node
 
+## 인스펙터에서 Party 노드를 연결한다.
+@export var party: Node
+
 ## 레인 안내선을 그린다. 좌표 확인용 임시 표시. 완성 전 끈다.
 @export var debug_draw: bool = true
 
@@ -20,6 +23,15 @@ func _ready() -> void:
 	spawner.wave_started.connect(_on_wave_started)
 	spawner.wave_cleared.connect(_on_wave_cleared)
 	spawner.floor_cleared.connect(_on_floor_cleared)
+
+	if party == null:
+		push_error("Battle: party 가 비어 있다. 인스펙터에서 Party 를 연결할 것.")
+		return
+	party.party_placed.connect(_on_party_placed)
+
+
+func _on_party_placed(units: Array) -> void:
+	print("편성 완료 — 가신 %d명" % units.size())
 
 
 func _on_wave_started(wave_number: int, total_waves: int, enemy_count: int) -> void:
