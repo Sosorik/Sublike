@@ -64,6 +64,7 @@ var _buffs: Array[Dictionary] = []
 ## 부여된 속성. "" 면 무속성. 지속시간이 끝나면 돌아온다.
 var _element: String = ""
 var _element_left: float = 0.0
+var _element_params: Dictionary = {}
 
 
 ## data/heroes.json 의 항목 하나를 받아 스탯과 외형을 세팅한다.
@@ -91,6 +92,7 @@ func setup(data: Dictionary) -> void:
 	_buffs.clear()
 	_element = ""
 	_element_left = 0.0
+	_element_params = {}
 	_min_damage = DataLoader.get_rule("min_damage", FALLBACK_MIN_DAMAGE)
 	_blockers.clear()
 
@@ -128,10 +130,17 @@ func apply_buff(type: String, value: float, duration: float) -> void:
 	_buffs.append({ "type": type, "value": value, "remaining": duration })
 
 
-## 속성을 부여한다. 이후 이 가신의 공격에 element 가 실린다.
-func apply_element(element: String, duration: float) -> void:
+## 속성을 부여한다. 이후 이 가신의 공격에 element 와 그 수치가 실린다.
+## params 는 aida_skills.json 의 effect 블록이다. 맞는 쪽이 읽어서 처리한다.
+func apply_element(element: String, duration: float, params: Dictionary) -> void:
 	_element = element
 	_element_left = maxf(_element_left, duration)
+	_element_params = params
+
+
+## 부여된 속성의 표시색. 없으면 빈 문자열.
+func get_element_color() -> String:
+	return str(_element_params.get("vfx_color", ""))
 
 
 ## 버프가 적용된 실효 수치. 공격 로직은 반드시 이 getter 를 쓴다.
@@ -186,6 +195,7 @@ func _tick_buffs(delta: float) -> void:
 		_element_left -= delta
 		if _element_left <= 0.0:
 			_element = ""
+			_element_params = {}
 
 
 ## ---------------------------------------------------------------- 저지
@@ -301,6 +311,7 @@ func _make_packet() -> DamagePacket:
 	var base: float = get_atk() * (_crit_mult if is_crit else 1.0)
 	var packet := DamagePacket.new(base, is_crit, hero_id)
 	packet.element = _element
+	packet.element_params = _element_params
 	return packet
 
 
@@ -314,6 +325,8 @@ func _fire_projectile(packet: DamagePacket, pierce: int) -> void:
 		push_error("Unit: projectile_scene 루트에 projectile.gd 가 없다.")
 		return
 
-	shot.modulate = modulate   # 누가 쏜 건지 색으로 구분한다 (임시 아트)
+	# 속성이 실렸으면 속성색으로, 아니면 쏜 가신의 색으로. 눌렀는지 화면만 봐도 알아야 한다.
+	var tint: String = get_element_color()
+	shot.modulate = Color.from_string(tint, modulate) if not tint.is_empty() else modulate
 	_projectiles_root.add_child(shot)
 	shot.launch(position, packet, float(_attack_params.get("speed", FALLBACK_PROJECTILE_SPEED)), pierce)

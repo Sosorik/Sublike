@@ -12,8 +12,16 @@ extends RefCounted
 
 var base: float = 0.0
 var is_crit: bool = false
-var element: String = ""          ## "" = 무속성. 화염/빙결 등은 3주차
+var element: String = ""          ## "" = 무속성. 부여된 속성 ID ("fire" 등)
 var source_hero_id: String = ""
+
+## 속성 세부 수치. aida_skills.json 의 effect 블록이 그대로 온다.
+## element 가 비어 있으면 의미 없다. 맞는 쪽이 읽어서 처리한다.
+var element_params: Dictionary = {}
+
+## 방어력을 무시한다. 지속피해와 신성 속성이 쓴다.
+## 지속피해에 방어력을 빼면 틱마다 최소피해로 떨어져 오히려 더 아파진다.
+var ignore_defense: bool = false
 
 
 func _init(p_base: float = 0.0, p_is_crit: bool = false, p_source: String = "") -> void:
@@ -23,4 +31,9 @@ func _init(p_base: float = 0.0, p_is_crit: bool = false, p_source: String = "") 
 
 
 func _to_string() -> String:
-	return "DamagePacket(%.1f%s from %s)" % [base, " CRIT" if is_crit else "", source_hero_id]
+	return "DamagePacket(%.1f%s%s from %s)" % [
+		base,
+		" CRIT" if is_crit else "",
+		" " + element if not element.is_empty() else "",
+		source_hero_id,
+	]

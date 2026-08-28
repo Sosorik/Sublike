@@ -19,6 +19,7 @@ const FALLBACK_COLOR: Color = Color(1.0, 1.0, 1.0, 1.0)
 const FALLBACK_MIN_DAMAGE: float = 1.0
 const FALLBACK_ATTACK_INTERVAL: float = 1.0
 const FALLBACK_CONTACT_X: float = 40.0
+const FALLBACK_DOT_TICK: float = 0.25
 
 ## 가신이 사거리 안의 적을 찾을 때 쓰는 그룹.
 const GROUP: StringName = &"enemies"
@@ -43,6 +44,13 @@ var _contact_x: float = FALLBACK_CONTACT_X
 var _blocked_by: Unit = null
 var _attack_timer: float = 0.0
 
+## 걸려 있는 지속피해. 각 항목 { dps, remaining }. stack_max 까지만 쌓인다.
+var _dots: Array[Dictionary] = []
+var _dot_color: Color = Color.WHITE
+var _dot_timer: float = 0.0
+var _dot_tick: float = FALLBACK_DOT_TICK
+var _base_color: Color = FALLBACK_COLOR
+
 
 ## data/enemies.json 의 항목 하나를 받아 스탯과 외형을 세팅한다.
 ## DataLoader 가 준 복사본이므로 여기서 값을 바꿔도 원본에 영향이 없다.
@@ -63,13 +71,17 @@ func setup(data: Dictionary) -> void:
 	_lane_pref = str(data.get("lane_pref", "any"))
 	_min_damage = DataLoader.get_rule("min_damage", FALLBACK_MIN_DAMAGE)
 	_contact_x = DataLoader.get_rule("block_contact_x", FALLBACK_CONTACT_X)
+	_dot_tick = DataLoader.get_rule("dot_tick", FALLBACK_DOT_TICK)
+	_dots.clear()
+	_dot_timer = 0.0
 
 	# 사거리 탐색 대상이 되려면 그룹에 있어야 한다. 재사용돼도 한 번만 들어간다.
 	if not is_in_group(GROUP):
 		add_to_group(GROUP)
 
-	# 임시 아트. 최종 스프라이트가 나오면 이 두 줄을 지운다.
-	modulate = Color.from_string(str(data.get("debug_color", "")), FALLBACK_COLOR)
+	# 임시 아트. 최종 스프라이트가 나오면 이 세 줄을 지운다.
+	_base_color = Color.from_string(str(data.get("debug_color", "")), FALLBACK_COLOR)
+	modulate = _base_color
 	scale = Vector2.ONE * float(data.get("debug_scale", 1.0))
 
 
@@ -89,8 +101,11 @@ func take_damage(packet: DamagePacket) -> void:
 	if packet == null or not is_alive():
 		return
 
-	var dealt: float = maxf(_min_damage, packet.base - defense)
+	var dealt: float = packet.base if packet.ignore_defense else maxf(_min_damage, packet.base - defense)
 	hp -= dealt
+
+	if not packet.element.is_empty():
+		_apply_element(packet)
 
 	if hp <= 0.0:
 		hp = 0.0
@@ -105,6 +120,10 @@ func is_alive() -> bool:
 
 
 func _physics_process(delta: float) -> void:
+	_tick_dots(delta)
+	if not is_alive():
+		return
+
 	# 저지당하는 중이면 멈춰서 붙잡은 가신을 때린다.
 	if _blocked_by != null:
 		_tick_blocked(delta)
@@ -123,6 +142,81 @@ func _physics_process(delta: float) -> void:
 	if position.x <= BattleLayout.AIDA_HIT_X:
 		_advancing = false
 		reached_aida.emit.call_deferred(self)
+
+
+## ---------------------------------------------------------------- 속성
+
+## 맞은 속성의 효과를 건다. 수치는 packet.element_params 에 실려 온다.
+## 화염 외 속성은 3주차 범위 밖이라 조용히 무시한다.
+func _apply_element(packet: DamagePacket) -> void:
+	var params: Dictionary = packet.element_params
+	if str(params.get("type", "")) != "dot":
+		return
+
+	var stack_max: int = maxi(1, int(params.get("stack_max", 1)))
+	var duration: float = float(params.get("duration", 0.0))
+	var dps: float = float(params.get("dps", 0.0))
+	if duration <= 0.0 or dps <= 0.0:
+		return
+
+	_dot_color = Color.from_string(str(params.get("vfx_color", "")), Color(1.0, 0.5, 0.2))
+
+	if _dots.size() >= stack_max:
+		# 꽉 찼으면 가장 먼저 꺼질 스택의 시간을 새로 고친다.
+		var soonest: int = 0
+		for i in _dots.size():
+			if float(_dots[i]["remaining"]) < float(_dots[soonest]["remaining"]):
+				soonest = i
+		_dots[soonest]["remaining"] = duration
+		_dots[soonest]["dps"] = dps
+		return
+
+	_dots.append({ "dps": dps, "remaining": duration })
+
+
+## 지속피해를 일정 간격으로 넣는다. 매 프레임 넣으면 피해 묶음만 낭비된다.
+## 방어력을 무시한다 — 틱당 피해가 작아서 방어력을 빼면 최소피해로 떨어진다.
+func _tick_dots(delta: float) -> void:
+	if _dots.is_empty():
+		return
+
+	var dps_sum: float = 0.0
+	for i in range(_dots.size() - 1, -1, -1):
+		_dots[i]["remaining"] = float(_dots[i]["remaining"]) - delta
+		if float(_dots[i]["remaining"]) <= 0.0:
+			_dots.remove_at(i)
+		else:
+			dps_sum += float(_dots[i]["dps"])
+
+	_update_burn_tint()
+
+	if dps_sum <= 0.0:
+		return
+
+	_dot_timer -= delta
+	if _dot_timer > 0.0:
+		return
+	_dot_timer = _dot_tick
+
+	var packet := DamagePacket.new(dps_sum * _dot_tick, false, "")
+	packet.ignore_defense = true
+	take_damage(packet)
+
+
+## 스택이 많을수록 더 타오른다. 깜빡여서 "지금 불붙어 있다" 를 알린다.
+func _update_burn_tint() -> void:
+	if _dots.is_empty():
+		modulate = _base_color
+		return
+	var weight: float = clampf(0.35 + 0.2 * _dots.size(), 0.0, 0.9)
+	var pulse: float = 0.85 + 0.15 * sin(float(Time.get_ticks_msec()) * 0.012)
+	modulate = _base_color.lerp(_dot_color, weight) * pulse
+	modulate.a = 1.0
+
+
+## 지금 불타는 중인가. 연출·디버그용.
+func get_dot_stacks() -> int:
+	return _dots.size()
 
 
 ## ---------------------------------------------------------------- 저지
@@ -196,3 +290,5 @@ func get_lane_pref() -> String:
 func _on_released() -> void:
 	_advancing = false
 	_leave_blocker()
+	_dots.clear()
+	modulate = _base_color

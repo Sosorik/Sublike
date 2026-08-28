@@ -132,8 +132,11 @@ func _apply(skill: Dictionary) -> void:
 			if element.is_empty():
 				push_error("AidaSkills: '%s' 에 element 가 없다." % skill.get("id", ""))
 				return
+			# effect 를 그대로 넘긴다. 지속시간도 같이 실어서 맞는 쪽이 알 수 있게 한다.
+			var params: Dictionary = effect.duplicate(true)
+			params["duration"] = duration
 			for u in party.get_alive_units():
-				u.apply_element(element, duration)
+				u.apply_element(element, duration, params)
 		"heal_flat":
 			aida.heal(value)
 		_:

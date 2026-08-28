@@ -6,10 +6,10 @@
     { "id": "buff_crit",   "name": "집중", "slot": "buff", "cooldown": 15.0, "duration": 6.0, "effect": { "type": "crit_add", "value": 0.35 }, "cutin_line": "급소를 노려." },
     { "id": "buff_range",  "name": "확장", "slot": "buff", "cooldown": 16.0, "duration": 6.0, "effect": { "type": "range_mult", "value": 1.4 }, "cutin_line": "더 멀리 닿을 수 있어." },
 
-    { "id": "elem_fire",    "name": "화염 부여", "element": "fire",    "slot": "element", "cooldown": 14.0, "duration": 6.0, "effect": { "type": "dot", "dps": 8.0, "stack_max": 3 }, "cutin_line": "타올라라.", "vfx_note": "투사체 색상+트레일+피격 화염 파티클. 눌렀는지 화면만 봐도 알아야 함" },
-    { "id": "elem_ice",     "name": "빙결 부여", "element": "ice",     "slot": "element", "cooldown": 16.0, "duration": 6.0, "effect": { "type": "slow", "value": 0.5, "freeze_chance": 0.1 }, "cutin_line": "얼어붙어." },
-    { "id": "elem_thunder", "name": "뇌전 부여", "element": "thunder", "slot": "element", "cooldown": 15.0, "duration": 5.0, "effect": { "type": "chain", "targets": 3, "falloff": 0.6 }, "cutin_line": "번져 나가." },
-    { "id": "elem_holy",    "name": "신성 부여", "element": "holy",    "slot": "element", "cooldown": 20.0, "duration": 5.0, "effect": { "type": "ignore_defense", "value": 1.0 }, "cutin_line": "그 갑옷은 소용없어." },
+    { "id": "elem_fire",    "name": "화염 부여", "element": "fire",    "slot": "element", "cooldown": 14.0, "duration": 6.0, "effect": { "type": "dot", "dps": 8.0, "stack_max": 3, "vfx_color": "#ff7a3c" }, "cutin_line": "타올라라.", "vfx_note": "투사체 색상+트레일+피격 화염 파티클. 눌렀는지 화면만 봐도 알아야 함" },
+    { "id": "elem_ice",     "name": "빙결 부여", "element": "ice",     "slot": "element", "cooldown": 16.0, "duration": 6.0, "effect": { "type": "slow", "value": 0.5, "freeze_chance": 0.1, "vfx_color": "#6cc8ff" }, "cutin_line": "얼어붙어." },
+    { "id": "elem_thunder", "name": "뇌전 부여", "element": "thunder", "slot": "element", "cooldown": 15.0, "duration": 5.0, "effect": { "type": "chain", "targets": 3, "falloff": 0.6, "vfx_color": "#e0d24a" }, "cutin_line": "번져 나가." },
+    { "id": "elem_holy",    "name": "신성 부여", "element": "holy",    "slot": "element", "cooldown": 20.0, "duration": 5.0, "effect": { "type": "ignore_defense", "value": 1.0, "vfx_color": "#fff2c0" }, "cutin_line": "그 갑옷은 소용없어." },
 
     { "id": "heal_instant", "name": "치유",     "slot": "heal", "cooldown": 10.0, "duration": 0.0, "effect": { "type": "heal_flat", "value": 40.0 }, "cutin_line": "괜찮아, 내가 있어." },
     { "id": "heal_regen",   "name": "재생",     "slot": "heal", "cooldown": 16.0, "duration": 8.0, "effect": { "type": "heal_over_time", "hps": 10.0 }, "cutin_line": "천천히 회복해." },
