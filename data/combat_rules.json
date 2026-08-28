@@ -2,6 +2,7 @@
   "_comment": "전투 공통 규칙. 개별 가신/적이 아니라 전투 전체에 적용된다.",
   "rules": [
     { "id": "crit_mult",  "value": 2.0, "note": "치명타 배수" },
-    { "id": "min_damage", "value": 1.0, "note": "방어력을 빼고도 최소한 이만큼은 들어간다" }
+    { "id": "min_damage", "value": 1.0, "note": "방어력을 빼고도 최소한 이만큼은 들어간다" },
+    { "id": "aida_max_hp", "value": 100.0, "note": "아이다 체력. 임시 수치 — 밸런스는 5~6주차" }
   ]
 }

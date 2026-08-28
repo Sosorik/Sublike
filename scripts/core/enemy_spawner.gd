@@ -15,6 +15,8 @@ signal wave_started(wave_number: int, total_waves: int, enemy_count: int)
 signal wave_cleared(wave_number: int)
 ## 층의 마지막 웨이브까지 끝났다.
 signal floor_cleared()
+## 적이 아이다까지 갔다. 피해 적용은 Battle 이 한다 — 스포너는 아이다를 몰라도 된다.
+signal enemy_reached_aida(enemy: Enemy)
 
 enum State { IDLE, SPAWNING, WAITING_CLEAR, INTERMISSION, DONE }
 
@@ -80,6 +82,12 @@ func start() -> void:
 	_killed = 0
 	_queue.clear()
 	_next_wave()
+
+
+## 스폰을 멈춘다. 판이 실패했을 때 쓴다. 이미 나와 있는 적은 그대로 둔다.
+func stop() -> void:
+	_queue.clear()
+	_state = State.IDLE
 
 
 func get_state() -> State:
@@ -214,8 +222,9 @@ func _pick_lane(lane_pref: String) -> String:
 
 
 func _on_enemy_reached_aida(enemy: Enemy) -> void:
-	# 아이다 HP 감소는 2주차 마지막 항목에서 붙인다.
 	_alive = maxi(0, _alive - 1)
+	# 반납 전에 알린다. 받는 쪽이 enemy.damage 를 읽어야 한다.
+	enemy_reached_aida.emit(enemy)
 	ObjectPool.release(enemy)
 
 

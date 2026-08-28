@@ -6,26 +6,31 @@
 [ext_resource type="Script" path="res://scripts/core/party.gd" id="4_party"]
 [ext_resource type="PackedScene" path="res://scenes/entities/unit.tscn" id="5_unit"]
 [ext_resource type="PackedScene" path="res://scenes/entities/projectile.tscn" id="6_projectile"]
+[ext_resource type="Script" path="res://scripts/combat/aida.gd" id="7_aida"]
 
-[node name="Battle" type="Node2D" unique_id=1666057436 node_paths=PackedStringArray("spawner", "party")]
+[node name="Battle" type="Node2D" unique_id=1492772608 node_paths=PackedStringArray("spawner", "party", "aida")]
 script = ExtResource("1_battle")
 spawner = NodePath("EnemySpawner")
 party = NodePath("Party")
+aida = NodePath("Aida")
 
-[node name="Enemies" type="Node2D" parent="." unique_id=1540707645]
+[node name="Enemies" type="Node2D" parent="." unique_id=245586751]
 
-[node name="Projectiles" type="Node2D" parent="." unique_id=1000236827]
+[node name="Projectiles" type="Node2D" parent="." unique_id=1817241913]
 
-[node name="Lanes" type="Node2D" parent="." unique_id=715294340]
+[node name="Lanes" type="Node2D" parent="." unique_id=1785535067]
 
-[node name="Party" type="Node" parent="." unique_id=526451744 node_paths=PackedStringArray("units_root", "projectiles_root")]
+[node name="Aida" type="Node2D" parent="." unique_id=533539194]
+script = ExtResource("7_aida")
+
+[node name="Party" type="Node" parent="." unique_id=2128661972 node_paths=PackedStringArray("units_root", "projectiles_root")]
 script = ExtResource("4_party")
 unit_scene = ExtResource("5_unit")
 units_root = NodePath("../Lanes")
 projectile_scene = ExtResource("6_projectile")
 projectiles_root = NodePath("../Projectiles")
 
-[node name="EnemySpawner" type="Node" parent="." unique_id=2079385669 node_paths=PackedStringArray("enemies_root")]
+[node name="EnemySpawner" type="Node" parent="." unique_id=478257703 node_paths=PackedStringArray("enemies_root")]
 script = ExtResource("3_spawner")
 enemy_scene = ExtResource("2_enemy")
 enemies_root = NodePath("../Enemies")
