@@ -43,6 +43,14 @@ func take_damage(packet: DamagePacket) -> void:
 		died.emit()
 
 
+## 회복. 최대치를 넘지 않는다.
+func heal(amount: float) -> void:
+	if _dead or amount <= 0.0:
+		return
+	hp = minf(max_hp, hp + amount)
+	hp_changed.emit(hp, max_hp)
+
+
 func is_alive() -> bool:
 	return not _dead
 

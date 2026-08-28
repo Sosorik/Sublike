@@ -58,6 +58,13 @@ var _projectiles_root: Node2D = null
 var _min_damage: float = FALLBACK_MIN_DAMAGE
 var _blockers: Array[Enemy] = []
 
+## 아이다 버프. 각 항목 { type, value, remaining }. 지속시간이 끝나면 사라진다.
+var _buffs: Array[Dictionary] = []
+
+## 부여된 속성. "" 면 무속성. 지속시간이 끝나면 돌아온다.
+var _element: String = ""
+var _element_left: float = 0.0
+
 
 ## data/heroes.json 의 항목 하나를 받아 스탯과 외형을 세팅한다.
 ## 레벨 성장(growth)은 Phase 1 범위 밖이라 base_stats 를 그대로 쓴다.
@@ -81,6 +88,9 @@ func setup(data: Dictionary) -> void:
 	crit = float(stats.get("crit", 0.0))
 	defense = float(stats.get("defense", 0.0))
 	block_count = int(stats.get("block_count", 0))
+	_buffs.clear()
+	_element = ""
+	_element_left = 0.0
 	_min_damage = DataLoader.get_rule("min_damage", FALLBACK_MIN_DAMAGE)
 	_blockers.clear()
 
@@ -109,6 +119,73 @@ func place_at(slot_line: String) -> void:
 	var g: StringName = lane_group(line)
 	if not is_in_group(g):
 		add_to_group(g)
+
+
+## ---------------------------------------------------------------- 버프 / 속성
+
+## 아이다 버프를 건다. 같은 종류가 겹치면 곱해진다 (버프 2개를 동시에 쓸 수 없어 지금은 무의미).
+func apply_buff(type: String, value: float, duration: float) -> void:
+	_buffs.append({ "type": type, "value": value, "remaining": duration })
+
+
+## 속성을 부여한다. 이후 이 가신의 공격에 element 가 실린다.
+func apply_element(element: String, duration: float) -> void:
+	_element = element
+	_element_left = maxf(_element_left, duration)
+
+
+## 버프가 적용된 실효 수치. 공격 로직은 반드시 이 getter 를 쓴다.
+func get_atk() -> float:
+	return atk * _mult_of("atk_mult")
+
+
+func get_atk_speed() -> float:
+	return atk_speed * _mult_of("atk_speed_mult")
+
+
+func get_crit() -> float:
+	return clampf(crit + _sum_of("crit_add"), 0.0, 1.0)
+
+
+func get_range() -> float:
+	return atk_range * _mult_of("range_mult")
+
+
+func get_element() -> String:
+	return _element
+
+
+func has_buff() -> bool:
+	return not _buffs.is_empty()
+
+
+func _mult_of(type: String) -> float:
+	var out: float = 1.0
+	for b in _buffs:
+		if b["type"] == type:
+			out *= float(b["value"])
+	return out
+
+
+func _sum_of(type: String) -> float:
+	var out: float = 0.0
+	for b in _buffs:
+		if b["type"] == type:
+			out += float(b["value"])
+	return out
+
+
+func _tick_buffs(delta: float) -> void:
+	if not _buffs.is_empty():
+		for i in range(_buffs.size() - 1, -1, -1):
+			_buffs[i]["remaining"] = float(_buffs[i]["remaining"]) - delta
+			if float(_buffs[i]["remaining"]) <= 0.0:
+				_buffs.remove_at(i)
+
+	if _element_left > 0.0:
+		_element_left -= delta
+		if _element_left <= 0.0:
+			_element = ""
 
 
 ## ---------------------------------------------------------------- 저지
@@ -165,7 +242,12 @@ func is_alive() -> bool:
 
 
 func _process(delta: float) -> void:
-	if not is_alive() or _attack_mode.is_empty():
+	if not is_alive():
+		return
+
+	_tick_buffs(delta)
+
+	if _attack_mode.is_empty():
 		return
 
 	_cooldown -= delta
@@ -177,7 +259,7 @@ func _process(delta: float) -> void:
 		return
 
 	_attack(target)
-	_cooldown = 1.0 / maxf(atk_speed, 0.01)
+	_cooldown = 1.0 / maxf(get_atk_speed(), 0.01)
 
 
 ## ---------------------------------------------------------------- 내부
@@ -189,7 +271,7 @@ func _find_target() -> Enemy:
 		var enemy: Enemy = node as Enemy
 		if enemy == null or not enemy.is_alive():
 			continue
-		if position.distance_to(enemy.position) > atk_range:
+		if position.distance_to(enemy.position) > get_range():
 			continue
 		if best == null or enemy.position.x < best.position.x:
 			best = enemy
@@ -215,9 +297,11 @@ func _attack(target: Enemy) -> void:
 
 ## 치명타는 발사 시점에 한 번만 굴린다. 관통이라도 맞는 적마다 다시 굴리지 않는다.
 func _make_packet() -> DamagePacket:
-	var is_crit: bool = randf() < crit
-	var base: float = atk * (_crit_mult if is_crit else 1.0)
-	return DamagePacket.new(base, is_crit, hero_id)
+	var is_crit: bool = randf() < get_crit()
+	var base: float = get_atk() * (_crit_mult if is_crit else 1.0)
+	var packet := DamagePacket.new(base, is_crit, hero_id)
+	packet.element = _element
+	return packet
 
 
 func _fire_projectile(packet: DamagePacket, pierce: int) -> void:

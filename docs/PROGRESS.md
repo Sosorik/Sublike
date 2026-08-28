@@ -96,6 +96,18 @@
 ## 2주차 완료
 
 전투 루프가 처음으로 끝까지 돈다. 스폰 → 교전 → 처치/돌파 → 층 클리어 또는 실패.
+## 3주차 — 아이다 + 컷인
+
+- [완료] 아이다 스킬 시스템 — `scripts/combat/aida_skills.gd` (슬롯 buff/element/heal)
+  장착: 격려(atk_mult 1.5, 5s, 쿨12) / 화염 부여(6s, 쿨14) / 치유(40, 쿨10)
+  슬롯에 맞지 않는 스킬을 넣으면 오류로 잡는다
+- [완료] 버프·속성 컨테이너 — `unit.gd` `apply_buff` / `apply_element` + `get_atk/get_atk_speed/get_crit/get_range`
+  공격 로직은 반드시 getter 를 쓴다. 기본 스탯은 건드리지 않는다
+- [완료] 힐 — `aida.gd` `heal()`
+- [완료] 액티브 버튼 3개 + 쿨타임 게이지 + 자동 시전 토글
+  `scripts/ui/battle_hud.gd`, `scenes/ui/battle_hud.tscn`. 키보드 1/2/3, A 로 자동시전
+  버튼 위젯은 코드로 만든다 — 슬롯 3벌을 씬에 복사해 두면 한 곳만 고쳐도 어긋난다
+  검증: 쿨타임 12/14/10초 정확, atk 12→18 후 5초 뒤 복귀, element 6초 뒤 해제
 
 ### 알아둘 것
 - `.tscn`에서 노드 참조 export(`@export var x: Node2D`)는 노드 헤더에
