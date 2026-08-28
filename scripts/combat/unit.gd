@@ -52,6 +52,13 @@ var defense: float = 0.0
 ## 동시에 저지할 수 있는 적 수. 0이면 저지하지 않는다 (원거리 가신).
 var block_count: int = 0
 
+## 런 내 강화의 누적 계수. 아이다 버프와 달리 판이 끝날 때까지 유지된다.
+var run_atk_mult: float = 1.0
+var run_atk_speed_mult: float = 1.0
+var run_range_mult: float = 1.0
+
+var _base_max_hp: float = 0.0
+
 var _attack_mode: String = ""
 var _attack_params: Dictionary = {}
 var _crit_mult: float = FALLBACK_CRIT_MULT
@@ -93,6 +100,7 @@ func setup(data: Dictionary) -> void:
 
 	var stats: Dictionary = data.get("base_stats", {})
 	max_hp = float(stats.get("hp", 1.0))
+	_base_max_hp = max_hp
 	hp = max_hp
 	atk = float(stats.get("atk", 0.0))
 	atk_speed = float(stats.get("atk_speed", 1.0))
@@ -197,11 +205,11 @@ func get_element_color() -> String:
 
 ## 버프가 적용된 실효 수치. 공격 로직은 반드시 이 getter 를 쓴다.
 func get_atk() -> float:
-	return atk * _mult_of("atk_mult")
+	return atk * _mult_of("atk_mult") * run_atk_mult
 
 
 func get_atk_speed() -> float:
-	return atk_speed * _mult_of("atk_speed_mult")
+	return atk_speed * _mult_of("atk_speed_mult") * run_atk_speed_mult
 
 
 func get_crit() -> float:
@@ -209,7 +217,24 @@ func get_crit() -> float:
 
 
 func get_range() -> float:
-	return atk_range * _mult_of("range_mult")
+	return atk_range * _mult_of("range_mult") * run_range_mult
+
+
+## 런 내 강화를 반영한다. 누적값을 통째로 다시 넣는 방식이라 여러 번 불러도 안전하다.
+## 체력 상한이 오르면 오른 만큼 회복시킨다 — 안 그러면 고른 보람이 없다.
+func set_run_modifiers(atk_mult: float, aspd_mult: float, range_mult: float, hp_mult: float) -> void:
+	run_atk_mult = atk_mult
+	run_atk_speed_mult = aspd_mult
+	run_range_mult = range_mult
+
+	var new_max: float = _base_max_hp * hp_mult
+	if not is_equal_approx(new_max, max_hp):
+		var gained: float = new_max - max_hp
+		max_hp = new_max
+		if gained > 0.0:
+			hp = minf(max_hp, hp + gained)
+		else:
+			hp = minf(hp, max_hp)
 
 
 func get_element() -> String:

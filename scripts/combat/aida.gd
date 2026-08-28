@@ -22,6 +22,7 @@ var hp: float = FALLBACK_MAX_HP
 
 var _dead: bool = false
 var _profile: Dictionary = {}
+var _base_max_hp: float = FALLBACK_MAX_HP
 
 
 func _ready() -> void:
@@ -29,6 +30,7 @@ func _ready() -> void:
 	_profile = DataLoader.get_aida()
 	display_name = str(_profile.get("name", display_name))
 	max_hp = float(_profile.get("max_hp", FALLBACK_MAX_HP))
+	_base_max_hp = max_hp
 	hp = max_hp
 	# 자식의 _ready() 가 부모보다 먼저 돈다. 부모가 연결할 틈을 준다.
 	_announce.call_deferred()
@@ -45,6 +47,17 @@ func take_damage(packet: DamagePacket) -> void:
 	if hp <= 0.0:
 		_dead = true
 		died.emit()
+
+
+## 런 내 강화로 늘어난 체력 상한. 누적값을 통째로 넣는다.
+func set_run_bonus_hp(bonus: float) -> void:
+	var new_max: float = _base_max_hp + bonus
+	if is_equal_approx(new_max, max_hp):
+		return
+	var gained: float = new_max - max_hp
+	max_hp = new_max
+	hp = minf(max_hp, hp + maxf(0.0, gained))
+	hp_changed.emit(hp, max_hp)
 
 
 ## 회복. 최대치를 넘지 않는다.

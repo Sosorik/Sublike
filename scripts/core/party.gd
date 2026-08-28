@@ -52,6 +52,21 @@ func get_unit_on_line(line: String) -> Unit:
 	return _by_line.get(line, null)
 
 
+## 런 내 강화를 모든 가신에게 반영한다. 라인 전용 강화는 해당 라인만 받는다.
+func apply_run_upgrades(run_state: RunState) -> void:
+	var atk: float = run_state.upgrade_mult("atk_mult")
+	var aspd: float = run_state.upgrade_mult("atk_speed_mult")
+	for u in _units:
+		if not is_instance_valid(u):
+			continue
+		u.set_run_modifiers(
+			atk,
+			aspd,
+			run_state.upgrade_mult("line_range_mult", u.line),
+			run_state.upgrade_mult("line_hp_mult", u.line)
+		)
+
+
 ## 살아 있는 가신 전부.
 func get_alive_units() -> Array[Unit]:
 	var out: Array[Unit] = []

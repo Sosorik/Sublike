@@ -32,6 +32,11 @@ const SLOTS: Array[String] = ["buff", "element", "heal"]
 var _skills: Array[Dictionary] = []
 var _cooldowns: Array[float] = []
 
+## 런 내 강화 누적값.
+var _run_cooldown_mult: float = 1.0
+var _run_element_add: float = 0.0
+var _run_heal_mult: float = 1.0
+
 
 func _ready() -> void:
 	if party == null or aida == null:
@@ -99,6 +104,15 @@ func try_use(slot: int) -> bool:
 	return true
 
 
+## 런 내 강화를 반영한다. 누적값을 통째로 넣는 방식이라 여러 번 불러도 안전하다.
+func set_run_modifiers(cooldown_mult: float, element_add: float, heal_mult: float) -> void:
+	_run_cooldown_mult = cooldown_mult
+	_run_element_add = element_add
+	_run_heal_mult = heal_mult
+	for i in _cooldowns.size():
+		cooldown_changed.emit(i, _cooldowns[i], _total_cooldown(i))
+
+
 func set_auto_cast(enabled: bool) -> void:
 	if auto_cast == enabled:
 		return
@@ -113,7 +127,9 @@ func toggle_auto_cast() -> void:
 ## ---------------------------------------------------------------- 내부
 
 func _total_cooldown(slot: int) -> float:
-	return float(_skills[slot].get("cooldown", 1.0)) if not _skills[slot].is_empty() else 1.0
+	if _skills[slot].is_empty():
+		return 1.0
+	return maxf(0.5, float(_skills[slot].get("cooldown", 1.0)) * _run_cooldown_mult)
 
 
 func _apply(skill: Dictionary) -> void:
@@ -133,12 +149,14 @@ func _apply(skill: Dictionary) -> void:
 				push_error("AidaSkills: '%s' 에 element 가 없다." % skill.get("id", ""))
 				return
 			# effect 를 그대로 넘긴다. 지속시간도 같이 실어서 맞는 쪽이 알 수 있게 한다.
+			# 속성 지속 강화는 부여 시간과 맞은 뒤 타는 시간 둘 다에 붙는다.
+			var elem_dur: float = duration + _run_element_add
 			var params: Dictionary = effect.duplicate(true)
-			params["duration"] = duration
+			params["duration"] = elem_dur
 			for u in party.get_alive_units():
-				u.apply_element(element, duration, params)
+				u.apply_element(element, elem_dur, params)
 		"heal_flat":
-			aida.heal(value)
+			aida.heal(value * _run_heal_mult)
 		_:
 			push_error("AidaSkills: 아직 구현하지 않은 효과 '%s' (%s)" % [type, skill.get("id", "")])
 

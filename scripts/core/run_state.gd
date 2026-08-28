@@ -114,6 +114,37 @@ func get_upgrades() -> Dictionary:
 	return _upgrades.duplicate()
 
 
+## 런 강화의 누적 배수. 같은 강화를 n번 고르면 값이 n제곱으로 곱해진다.
+## line 을 주면 그 라인 전용 강화만 센다 (line_hp_mult 등).
+func upgrade_mult(effect_type: String, line: String = "") -> float:
+	var out: float = 1.0
+	for id in _upgrades:
+		var e: Dictionary = DataLoader.get_upgrade(id).get("effect", {})
+		if str(e.get("type", "")) != effect_type:
+			continue
+		if not line.is_empty() and str(e.get("line", "")) != line:
+			continue
+		out *= pow(float(e.get("value", 1.0)), float(_upgrades[id]))
+	return out
+
+
+## 런 강화의 누적 덧셈량 (aida_hp_add, element_duration_add 등).
+func upgrade_add(effect_type: String) -> float:
+	var out: float = 0.0
+	for id in _upgrades:
+		var e: Dictionary = DataLoader.get_upgrade(id).get("effect", {})
+		if str(e.get("type", "")) == effect_type:
+			out += float(e.get("value", 0.0)) * float(_upgrades[id])
+	return out
+
+
+## 3택 후보를 뽑는다. 최대 스택에 찬 것은 빠진다. 후보가 모자라면 있는 만큼만.
+func roll_upgrade_choices(count: int = 3) -> Array[String]:
+	var pool: Array[String] = available_upgrade_ids()
+	pool.shuffle()
+	return pool.slice(0, mini(count, pool.size()))
+
+
 ## 최대 스택에 도달하지 않은 강화 ID 목록. 3택 후보를 여기서 고른다.
 func available_upgrade_ids() -> Array[String]:
 	var out: Array[String] = []

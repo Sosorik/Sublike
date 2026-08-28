@@ -12,12 +12,13 @@
 [ext_resource type="PackedScene" path="res://scenes/ui/cutin_layer.tscn" id="10_cutin"]
 [ext_resource type="Script" path="res://scripts/core/run_state.gd" id="11_run"]
 
-[node name="Battle" type="Node2D" node_paths=PackedStringArray("spawner", "party", "aida", "run_state")]
+[node name="Battle" type="Node2D" node_paths=PackedStringArray("spawner", "party", "aida", "run_state", "skills")]
 script = ExtResource("1_battle")
 spawner = NodePath("EnemySpawner")
 party = NodePath("Party")
 aida = NodePath("Aida")
 run_state = NodePath("RunState")
+skills = NodePath("AidaSkills")
 
 [node name="Enemies" type="Node2D" parent="."]
 

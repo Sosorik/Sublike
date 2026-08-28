@@ -20,6 +20,12 @@ extends Node2D
 ## 인스펙터에서 RunState 노드를 연결한다.
 @export var run_state: RunState
 
+## 인스펙터에서 AidaSkills 를 연결한다. 런 강화가 쿨타임·힐량에 붙는다.
+@export var skills: AidaSkills
+
+## 층 클리어 후 강화 3택을 내민다. (강화 ID 목록)
+signal upgrades_offered(ids: Array)
+
 ## 레인 안내선을 그린다. 좌표 확인용 임시 표시. 완성 전 끈다.
 @export var debug_draw: bool = true
 
@@ -108,9 +114,49 @@ func _start_floor() -> void:
 
 func _on_floor_cleared() -> void:
 	print("%d층 클리어 — 처치 %d" % [run_state.current_floor(), spawner.get_killed_count()])
-	# 강화 3택은 다음 항목. 지금은 곧바로 다음 층으로 넘어간다.
+
+	# 마지막 층이었으면 강화를 고를 이유가 없다. 바로 구간 클리어로.
+	if run_state.floor_position() >= run_state.total_floors():
+		run_state.advance()
+		return
+
+	var choices: Array[String] = run_state.roll_upgrade_choices(3)
+	if choices.is_empty():
+		_next_floor()
+		return
+
+	# 고르는 동안 전투를 멈춘다. 웨이브 사이 정비 시간과 같은 성격이다.
+	get_tree().paused = true
+	upgrades_offered.emit(choices)
+
+
+## 강화를 하나 고른다. HUD 가 부른다.
+func choose_upgrade(upgrade_id: String) -> void:
+	if run_state.add_upgrade(upgrade_id):
+		var row: Dictionary = DataLoader.get_upgrade(upgrade_id)
+		print("강화 획득 — %s (스택 %d)" % [
+			row.get("name", upgrade_id), run_state.get_upgrade_stack(upgrade_id)
+		])
+		_apply_run_upgrades()
+	get_tree().paused = false
+	_next_floor()
+
+
+func _next_floor() -> void:
 	if run_state.advance():
 		_start_floor()
+
+
+## 누적된 런 강화를 가신·아이다·스킬에 통째로 다시 반영한다.
+func _apply_run_upgrades() -> void:
+	party.apply_run_upgrades(run_state)
+	aida.set_run_bonus_hp(run_state.upgrade_add("aida_hp_add"))
+	if skills != null:
+		skills.set_run_modifiers(
+			run_state.upgrade_mult("cooldown_mult"),
+			run_state.upgrade_add("element_duration_add"),
+			run_state.upgrade_mult("heal_mult")
+		)
 
 
 func _on_segment_cleared() -> void:

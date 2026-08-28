@@ -21,6 +21,10 @@ extends CanvasLayer
 ## 인스펙터에서 Status (Label) 를 연결한다. 층·웨이브 표시.
 @export var status_label: Label
 
+## 층 클리어 후 강화 3택. 인스펙터에서 Upgrade 계열을 연결한다.
+@export var upgrade_panel: Control
+@export var upgrade_box: HBoxContainer
+
 ## 판이 끝났을 때 뜨는 판. 인스펙터에서 Result 계열을 연결한다.
 @export var result_panel: Control
 @export var result_label: Label
@@ -61,6 +65,10 @@ func _ready() -> void:
 
 	if result_panel != null:
 		result_panel.visible = false
+	if upgrade_panel != null:
+		upgrade_panel.visible = false
+	if battle != null:
+		battle.upgrades_offered.connect(_on_upgrades_offered)
 	if retry_button != null:
 		retry_button.pressed.connect(_on_retry_pressed)
 
@@ -141,6 +149,38 @@ func _on_auto_cast_changed(enabled: bool) -> void:
 
 func _on_auto_cast_box_toggled(pressed: bool) -> void:
 	skills.set_auto_cast(pressed)
+
+
+## ---------------------------------------------------------------- 강화 3택
+
+## 후보 수만큼 버튼을 새로 만든다. 개수가 3보다 적을 수도 있다.
+func _on_upgrades_offered(ids: Array) -> void:
+	if upgrade_panel == null or upgrade_box == null:
+		return
+
+	for child in upgrade_box.get_children():
+		child.queue_free()
+
+	for id in ids:
+		var row: Dictionary = DataLoader.get_upgrade(str(id))
+		var stack: int = run_state.get_upgrade_stack(str(id))
+		var maxs: int = int(row.get("max_stack", 1))
+
+		var b := Button.new()
+		b.custom_minimum_size = Vector2(210.0, 96.0)
+		b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		b.focus_mode = Control.FOCUS_NONE
+		b.text = "%s
+(%d/%d)" % [row.get("name", id), stack, maxs]
+		b.pressed.connect(_on_upgrade_picked.bind(str(id)))
+		upgrade_box.add_child(b)
+
+	upgrade_panel.visible = true
+
+
+func _on_upgrade_picked(upgrade_id: String) -> void:
+	upgrade_panel.visible = false
+	battle.choose_upgrade(upgrade_id)
 
 
 ## ---------------------------------------------------------------- 진행 표시
