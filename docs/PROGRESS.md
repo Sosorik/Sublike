@@ -63,6 +63,18 @@
   가신은 풀을 쓰지 않는다 (몇 명뿐이고 끝까지 살아 있다). 라인당 1칸, 중복 배치는 오류
   heroes.json 에 임시 아트 `debug_color`/`debug_scale` 추가
   아직 공격하지 않는다 — 적이 그냥 지나간다. 다음 항목에서 붙는다
+- [완료] 공격 타입 3종 + DamagePacket 파이프라인
+  `scripts/combat/damage_packet.gd` — 모든 피해가 거치는 단일 통로. `hp -= x` 를 밖에 두지 않는다
+  `scripts/combat/projectile.gd` + `scenes/entities/projectile.tscn` — 직선 투사체, 관통 시 중복 명중 방지
+  `unit.gd`: nearest_single(근접) / projectile_single / projectile_pierce
+  타겟 = 사거리 안에서 **가장 왼쪽 적**. 레인 무관, 2D 거리
+  치명타는 발사 시 1회만 굴린다. 관통이라도 맞는 적마다 다시 굴리지 않는다
+  방어력은 맞는 쪽이 뺀다 (`Enemy.take_damage`). 최소 피해는 `combat_rules.json`
+  `data/combat_rules.json` 신규 — crit_mult 2.0 / min_damage 1.0. `DataLoader.get_rule()`
+  충돌 레이어: 가신 1 / 적 2 / 투사체 4(마스크 2)
+  검증(층 1회): 처치 26 / 아이다 통과 12. 평균피해 리엔 12.46·세라 24.26·니나 16.8 — 데이터와 일치
+  풀 무결성 idle=created (투사체 48, 적 24), 에러 0
+- [대기] 밸런스 — 38마리 중 12마리가 아이다까지 간다. 진군 차단이 없어서다. 수치 조정은 5~6주차
 
 ### 알아둘 것
 - `.tscn`에서 노드 참조 export(`@export var x: Node2D`)는 노드 헤더에
@@ -77,10 +89,18 @@
   emit 하면 부모가 연결하기 전이라 놓친다. `start.call_deferred()` 로 트리 전체가 준비된 뒤 시작한다
 - 긴 진행을 검증할 땐 `Engine.time_scale` 을 올린다. 층 하나(실시간 3분+)를 10초에 확인
 - `--script` 모드에서는 autoload 가 **전역 식별자로 잡히지 않는다** (`Identifier not found: ObjectPool`).
-  런타임에는 존재하므로 `root.get_node_or_null("ObjectPool")` 로 접근한다. 게임 실행에서는 정상
+  게임 스크립트가 autoload 를 참조하면 그 모드에선 아예 컴파일이 안 된다.
+  **검증용 씬을 만들어 `godot --headless res://_probe.tscn` 으로 돌린다** — 정상 메인루프라 autoload 가 산다
+- **물리 콜백(`area_entered`, `_physics_process`) 안에서 노드를 트리에서 떼면 안 된다.**
+  Godot 이 거부하고, 부모가 남은 채 풀에 들어가 재사용 시 `already has a parent` 로 이어진다.
+  시그널을 `emit.call_deferred()` 로 미뤄서 물리 프레임 밖에서 반납한다
+- **풀 오브젝트의 시그널에 사용자가 핸들러를 붙이면 재사용마다 하나씩 쌓인다.**
+  투사체 반납을 쏜 가신이 맡았더니 한 번 만료에 여러 번 반납돼 풀이 조용히 망가졌다
+  (`idle > created` 가 신호였다). 반납은 오브젝트 자신이 한다
 - **JSON 숫자는 전부 float으로 들어온다.** `Array.has()`는 타입까지 따지므로
   `6 in [1.0, 2.0, ...]` 는 false다 (`fl[5] == 6` 은 true인데도).
   JSON에서 읽은 정수를 비교할 땐 반드시 `int()`로 맞춘다. 층·티어·스택수 전부 해당
 
 - [ ] 공식 튜토리얼 "Your first 2D game" 완주
-- [ ] 2주차 남은 것: 공격 타입 3종 → DamagePacket → 아이다 HP/실패 처리
+- [ ] 2주차 남은 것: 아이다 HP / 실패 처리 (마지막)
+- [ ] 진군 차단 규칙 구현 — ARCHITECTURE 에 규정돼 있고 `enemy.gd` 에 stub 만 있다

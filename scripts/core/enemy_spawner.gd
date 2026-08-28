@@ -43,6 +43,7 @@ var _rows: Dictionary = {}          ## enemy_id → 데이터 (1회만 복사해
 var _queue: Array[String] = []      ## 이번 웨이브에 남은 스폰 목록
 var _wave_index: int = -1           ## 0-based
 var _alive: int = 0
+var _killed: int = 0
 var _timer: float = 0.0
 var _interval: float = FALLBACK_INTERVAL
 var _intermission: float = FALLBACK_INTERMISSION
@@ -76,6 +77,7 @@ func start() -> void:
 		return
 	_wave_index = -1
 	_alive = 0
+	_killed = 0
 	_queue.clear()
 	_next_wave()
 
@@ -86,6 +88,11 @@ func get_state() -> State:
 
 func get_alive_count() -> int:
 	return _alive
+
+
+## 이번 층에서 처치한 적 수.
+func get_killed_count() -> int:
+	return _killed
 
 
 ## 현재 웨이브 번호(1-based). 아직 시작 전이면 0.
@@ -179,6 +186,8 @@ func _spawn_one(enemy_id: String) -> void:
 	# 재사용된 적은 이미 연결돼 있다. 중복 연결하면 시그널이 두 번 온다.
 	if not enemy.reached_aida.is_connected(_on_enemy_reached_aida):
 		enemy.reached_aida.connect(_on_enemy_reached_aida)
+	if not enemy.died.is_connected(_on_enemy_died):
+		enemy.died.connect(_on_enemy_died)
 
 	enemy.setup(row)
 	enemies_root.add_child(enemy)
@@ -207,6 +216,15 @@ func _pick_lane(lane_pref: String) -> String:
 func _on_enemy_reached_aida(enemy: Enemy) -> void:
 	# 아이다 HP 감소는 2주차 마지막 항목에서 붙인다.
 	_alive = maxi(0, _alive - 1)
+	ObjectPool.release(enemy)
+
+
+## 적이 처치됐다. 파편 드롭은 Phase 1 범위 밖이라 아직 없다.
+func _on_enemy_died(enemy: Enemy) -> void:
+	_killed += 1
+	_alive = maxi(0, _alive - 1)
+	if verbose:
+		print("  처치 %s (남은 alive=%d)" % [enemy.enemy_id, _alive])
 	ObjectPool.release(enemy)
 
 

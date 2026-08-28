@@ -51,6 +51,12 @@ func acquire(scene: PackedScene) -> Node:
 	if node == null:
 		node = _instantiate(scene, key)
 
+	# 물리 콜백 중 반납이라 트리에서 못 뗀 경우가 있다. 여기서 확실히 떼고 내보낸다.
+	var stale_parent: Node = node.get_parent()
+	if stale_parent != null:
+		stale_parent.remove_child(node)
+
+	node.set_meta("_pool_idle", false)
 	_busy_count[key] = int(_busy_count.get(key, 0)) + 1
 
 	if node.has_method("_on_acquired"):
@@ -68,6 +74,12 @@ func release(node: Node) -> void:
 		push_error("ObjectPool.release: 풀에서 나온 노드가 아니다 — %s" % node.name)
 		node.queue_free()
 		return
+
+	# 이중 반납은 풀을 조용히 망가뜨린다 (같은 노드가 두 번 대기열에 들어간다).
+	if bool(node.get_meta("_pool_idle", false)):
+		push_error("ObjectPool.release: 이미 반납된 노드다 — %s" % node.name)
+		return
+	node.set_meta("_pool_idle", true)
 
 	if node.has_method("_on_released"):
 		node.call("_on_released")

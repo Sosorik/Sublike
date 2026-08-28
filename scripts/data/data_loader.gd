@@ -17,6 +17,7 @@ const GROUP_HERO_SKILLS: String = "hero_skills"
 const GROUP_AIDA_SKILLS: String = "aida_skills"
 const GROUP_UPGRADES: String = "run_upgrades"
 const GROUP_SEGMENTS: String = "segments"
+const GROUP_COMBAT_RULES: String = "combat_rules"
 
 ## 그룹 → { 파일 경로, 배열이 담긴 최상위 키 }.
 ## 새 데이터 파일이 생기면 여기 한 줄만 추가한다.
@@ -28,6 +29,7 @@ const SOURCES: Dictionary = {
 	GROUP_AIDA_SKILLS: { "path": "res://data/aida_skills.json", "key": "skills" },
 	GROUP_UPGRADES: { "path": "res://data/run_upgrades.json", "key": "upgrades" },
 	GROUP_SEGMENTS: { "path": "res://data/floors.json", "key": "segments" },
+	GROUP_COMBAT_RULES: { "path": "res://data/combat_rules.json", "key": "rules" },
 }
 
 ## id가 이 접두어로 시작하면 주석·템플릿이므로 색인에서 뺀다. (heroes.json 의 "_template")
@@ -126,6 +128,15 @@ func get_upgrade(id: String) -> Dictionary:
 
 func get_segment(id: String) -> Dictionary:
 	return get_entry(GROUP_SEGMENTS, id)
+
+
+## 전투 공통 수치 하나. data/combat_rules.json 참조.
+## 없으면 default 를 돌려주고 오류를 찍지 않는다 (호출부에 대비값이 있다는 뜻).
+func get_rule(id: String, default_value: float) -> float:
+	var table: Dictionary = _index.get(GROUP_COMBAT_RULES, {})
+	if not table.has(id):
+		return default_value
+	return float((table[id] as Dictionary).get("value", default_value))
 
 
 ## 웨이브 스포너 설정. enemies.json 의 wave_pattern 블록.

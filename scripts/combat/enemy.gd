@@ -5,14 +5,21 @@ extends Area2D
 ## 경로탐색 없음. 레인(y) 변경 없음. 방향 전환 없음.
 ##
 ## 스탯은 전부 data/enemies.json 에서 온다. 코드에 수치를 적지 않는다.
-## 피해 처리는 2주차 DamagePacket 항목에서 붙인다. 지금은 스탯을 들고만 있는다.
+## 피해는 반드시 DamagePacket 을 거친다. hp 를 직접 깎는 코드를 밖에 두지 않는다.
 
 ## 아이다에게 도달했다.
 signal reached_aida(enemy: Enemy)
 
+## 체력이 0이 됐다. 스포너가 풀로 돌려보낸다.
+signal died(enemy: Enemy)
+
 ## setup() 전에 참조될 때만 쓰는 대비값.
 const FALLBACK_SPEED: float = 70.0
 const FALLBACK_COLOR: Color = Color(1.0, 1.0, 1.0, 1.0)
+const FALLBACK_MIN_DAMAGE: float = 1.0
+
+## 가신이 사거리 안의 적을 찾을 때 쓰는 그룹.
+const GROUP: StringName = &"enemies"
 
 var enemy_id: String = ""
 var display_name: String = ""
@@ -26,6 +33,7 @@ var shard_value: int = 0
 var _lane: String = "front"
 var _lane_pref: String = "any"
 var _advancing: bool = false
+var _min_damage: float = FALLBACK_MIN_DAMAGE
 
 
 ## data/enemies.json 의 항목 하나를 받아 스탯과 외형을 세팅한다.
@@ -44,6 +52,11 @@ func setup(data: Dictionary) -> void:
 	defense = float(data.get("defense", 0.0))
 	shard_value = int(data.get("shard_value", 0))
 	_lane_pref = str(data.get("lane_pref", "any"))
+	_min_damage = DataLoader.get_rule("min_damage", FALLBACK_MIN_DAMAGE)
+
+	# 사거리 탐색 대상이 되려면 그룹에 있어야 한다. 재사용돼도 한 번만 들어간다.
+	if not is_in_group(GROUP):
+		add_to_group(GROUP)
 
 	# 임시 아트. 최종 스프라이트가 나오면 이 두 줄을 지운다.
 	modulate = Color.from_string(str(data.get("debug_color", "")), FALLBACK_COLOR)
@@ -58,6 +71,26 @@ func spawn_at(lane: String) -> void:
 	_advancing = true
 
 
+## 피해를 받는다. 방어력은 맞는 쪽이 알기 때문에 여기서 뺀다.
+## packet.base 에는 치명타 배수가 이미 들어 있다.
+func take_damage(packet: DamagePacket) -> void:
+	if packet == null or not is_alive():
+		return
+
+	var dealt: float = maxf(_min_damage, packet.base - defense)
+	hp -= dealt
+
+	if hp <= 0.0:
+		hp = 0.0
+		_advancing = false
+		# 투사체 명중은 물리 콜백 안이다. 거기서 풀에 반납하면 트리에서 못 뗀다.
+		died.emit.call_deferred(self)
+
+
+func is_alive() -> bool:
+	return hp > 0.0
+
+
 func _physics_process(delta: float) -> void:
 	if not _advancing:
 		return
@@ -66,7 +99,7 @@ func _physics_process(delta: float) -> void:
 
 	if position.x <= BattleLayout.AIDA_HIT_X:
 		_advancing = false
-		reached_aida.emit(self)
+		reached_aida.emit.call_deferred(self)
 
 
 ## 전진을 멈춘다. 전열 가신에게 저지당했을 때 사용한다. (2주차)

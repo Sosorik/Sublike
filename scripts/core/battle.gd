@@ -39,7 +39,7 @@ func _on_wave_started(wave_number: int, total_waves: int, enemy_count: int) -> v
 
 
 func _on_wave_cleared(wave_number: int) -> void:
-	print("웨이브 %d 클리어" % wave_number)
+	print("웨이브 %d 클리어 — 누적 처치 %d" % [wave_number, spawner.get_killed_count()])
 
 
 func _on_floor_cleared() -> void:

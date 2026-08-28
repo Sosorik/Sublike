@@ -18,6 +18,15 @@ signal party_placed(units: Array)
 ## 배치할 가신 ID. 라인은 heroes.json 의 line 값을 그대로 따른다.
 @export var hero_ids: Array[String] = ["lien", "sera", "nina"]
 
+## 인스펙터에서 scenes/entities/projectile.tscn 을 연결한다.
+@export var projectile_scene: PackedScene
+
+## 투사체를 담을 노드. 인스펙터에서 Projectiles 를 연결한다.
+@export var projectiles_root: Node2D
+
+## 미리 만들어 둘 투사체 수.
+@export var projectile_prewarm: int = 48
+
 var _units: Array[Unit] = []
 var _by_line: Dictionary = {}   ## line → Unit
 
@@ -29,6 +38,9 @@ func _ready() -> void:
 	if units_root == null:
 		push_error("Party: units_root 가 비어 있다.")
 		return
+
+	if projectile_scene != null:
+		ObjectPool.prewarm(projectile_scene, projectile_prewarm)
 
 	_place_all()
 	# 자식의 _ready() 가 부모보다 먼저 돈다. 부모가 연결할 틈을 준다.
@@ -73,6 +85,7 @@ func _place_all() -> void:
 			return
 
 		unit.setup(data)
+		unit.set_projectile_source(projectile_scene, projectiles_root)
 		units_root.add_child(unit)
 		unit.place_at(line)
 
