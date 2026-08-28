@@ -11,20 +11,17 @@ extends Node2D
 ## 인스펙터에서 Enemies 노드를 연결한다.
 @export var enemies_root: Node2D
 
-## 스폰할 적 ID. data/enemies.json 참조.
-@export var enemy_id: String = "charger"
-
 ## 전투 시작 전 미리 만들어 둘 적 수.
 @export var prewarm_count: int = 16
 
 ## 레인 안내선을 그린다. 좌표 확인용 임시 표시. 완성 전 끈다.
 @export var debug_draw: bool = true
 
-## DataLoader 가 값을 주지 못했을 때만 쓰는 대비값.
-const DEFAULT_ENEMY_SPEED: float = 70.0
+## data/enemies.json 의 적 3종. JSON 순서대로 돌아가며 스폰한다.
+var _enemy_rows: Array[Dictionary] = []
 
 var _lane_index: int = 0
-var _enemy_speed: float = DEFAULT_ENEMY_SPEED
+var _type_index: int = 0
 
 
 func _ready() -> void:
@@ -35,18 +32,13 @@ func _ready() -> void:
 		push_error("Battle: enemies_root가 비어 있다. 인스펙터에서 Enemies 노드를 연결할 것.")
 		return
 
-	_enemy_speed = _load_enemy_speed()
+	_enemy_rows = DataLoader.get_all(DataLoader.GROUP_ENEMIES)
+	if _enemy_rows.is_empty():
+		push_error("Battle: data/enemies.json 에서 적을 하나도 읽지 못했다.")
+		return
+
 	ObjectPool.prewarm(enemy_scene, prewarm_count)
 	_spawn_enemy()
-
-
-## data/enemies.json 에서 이동 속도를 읽는다. 실패하면 기본값.
-func _load_enemy_speed() -> float:
-	var row: Dictionary = DataLoader.get_enemy(enemy_id)
-	if row.is_empty():
-		push_warning("Battle: 적 '%s' 를 찾지 못해 기본 속도를 쓴다." % enemy_id)
-		return DEFAULT_ENEMY_SPEED
-	return float(row.get("speed", DEFAULT_ENEMY_SPEED))
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -55,13 +47,14 @@ func _unhandled_input(event: InputEvent) -> void:
 			_spawn_enemy()
 
 
-## 적 1마리를 다음 레인에 스폰한다. 레인은 front → mid → back 순환.
+## 적 1마리를 스폰한다. 적 종류는 JSON 순서대로, 레인은 front → mid → back 순환.
+## lane_pref 가 "any" 가 아닌 적은 지정된 레인에만 나온다. (중갑체는 전열 고정)
 func _spawn_enemy() -> void:
-	if enemy_scene == null or enemies_root == null:
+	if enemy_scene == null or enemies_root == null or _enemy_rows.is_empty():
 		return
 
-	var lane: String = BattleLayout.LINES[_lane_index]
-	_lane_index = (_lane_index + 1) % BattleLayout.LINES.size()
+	var row: Dictionary = _enemy_rows[_type_index]
+	_type_index = (_type_index + 1) % _enemy_rows.size()
 
 	var enemy: Enemy = ObjectPool.acquire(enemy_scene) as Enemy
 	if enemy == null:
@@ -72,12 +65,31 @@ func _spawn_enemy() -> void:
 	if not enemy.reached_aida.is_connected(_on_enemy_reached_aida):
 		enemy.reached_aida.connect(_on_enemy_reached_aida)
 
+	enemy.setup(row)
 	enemies_root.add_child(enemy)
-	enemy.spawn_at(lane, _enemy_speed)
+	enemy.spawn_at(_pick_lane(enemy.get_lane_pref()))
+
+	print("스폰 — %s(%s) lane=%s speed=%.0f hp=%.0f" % [
+		enemy.display_name, enemy.enemy_id, enemy.get_lane(), enemy.speed, enemy.max_hp
+	])
+
+
+## lane_pref 를 실제 레인으로 바꾼다. "any" 면 순환, 아니면 지정 레인.
+func _pick_lane(lane_pref: String) -> String:
+	if lane_pref != "any":
+		if lane_pref in BattleLayout.LINES:
+			return lane_pref
+		push_warning("Battle: 알 수 없는 lane_pref '%s' — 순환 레인을 쓴다." % lane_pref)
+
+	var lane: String = BattleLayout.LINES[_lane_index]
+	_lane_index = (_lane_index + 1) % BattleLayout.LINES.size()
+	return lane
 
 
 func _on_enemy_reached_aida(enemy: Enemy) -> void:
-	print("적이 아이다에 도달 — lane=%s" % enemy.get_lane())
+	print("도달 — %s lane=%s (아이다 피해 %.0f)" % [
+		enemy.display_name, enemy.get_lane(), enemy.damage
+	])
 	# 아이다 HP 감소는 2주차 마지막 항목에서 붙인다.
 	ObjectPool.release(enemy)
 

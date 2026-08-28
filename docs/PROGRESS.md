@@ -45,16 +45,23 @@
 - [완료] 적 스폰을 풀 경유로 교체 — `battle.gd` (instantiate/queue_free 제거)
   적 속도를 `DataLoader.get_enemy("charger").speed` 에서 읽는다. 코드에 수치 없음
   재사용 시 시그널 중복 연결 방지 (`is_connected` 확인)
+- [완료] 적 3종 데이터 스폰 — `enemy.gd` `setup(data)`, `battle.gd` JSON 순서 순환
+  스탯(hp/speed/damage/defense/shard_value) 전부 `data/enemies.json` 에서. 코드에 수치 없음
+  `lane_pref` 반영 — 중갑체는 전열 고정, 나머지는 레인 순환 (고정 적은 순환 카운터를 소비하지 않는다)
+  임시 아트: `debug_color` / `debug_scale` 을 enemies.json 에 추가. 최종 스프라이트 나오면 제거
+  검증: 돌격체 70/60, 사격체 40/40, 중갑체 30/260 — 풀 prewarm 16 안에서 신규 생성 0
 
 ### 알아둘 것
 - `.tscn`에서 노드 참조 export(`@export var x: Node2D`)는 노드 헤더에
   `node_paths=PackedStringArray("x")`가 있어야 해석된다. `x = NodePath("...")`만 쓰면 null이 된다
 - 헤드리스 검증: `~/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_console.exe`
   `--headless --path C:/Users/kimcg/Desktop/LilaQuest/Sublike` (일반 exe는 stdout이 안 잡힌다)
+- `--script` 모드에서는 autoload 가 **전역 식별자로 잡히지 않는다** (`Identifier not found: ObjectPool`).
+  런타임에는 존재하므로 `root.get_node_or_null("ObjectPool")` 로 접근한다. 게임 실행에서는 정상
 - **JSON 숫자는 전부 float으로 들어온다.** `Array.has()`는 타입까지 따지므로
   `6 in [1.0, 2.0, ...]` 는 false다 (`fl[5] == 6` 은 true인데도).
   JSON에서 읽은 정수를 비교할 땐 반드시 `int()`로 맞춘다. 층·티어·스택수 전부 해당
 
 - [ ] 공식 튜토리얼 "Your first 2D game" 완주
-- [ ] 2주차 남은 것: 적 3종 → 웨이브 스포너 → 슬롯/가신 배치
+- [ ] 2주차 남은 것: 웨이브 스포너 → 슬롯/가신 배치
       → 공격 타입 3종 → DamagePacket → 아이다 HP/실패 처리
