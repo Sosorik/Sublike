@@ -3,6 +3,7 @@
   "rules": [
     { "id": "crit_mult",  "value": 2.0, "note": "치명타 배수" },
     { "id": "min_damage", "value": 1.0, "note": "방어력을 빼고도 최소한 이만큼은 들어간다" },
-    { "id": "aida_max_hp", "value": 100.0, "note": "아이다 체력. 임시 수치 — 밸런스는 5~6주차" }
+    { "id": "aida_max_hp", "value": 100.0, "note": "아이다 체력. 임시 수치 — 밸런스는 5~6주차" },
+    { "id": "block_contact_x", "value": 40.0, "note": "적이 가신의 x 에서 이만큼 앞까지 오면 저지 접촉" }
   ]
 }

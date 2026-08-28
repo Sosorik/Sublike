@@ -89,12 +89,17 @@ func _place_all() -> void:
 		units_root.add_child(unit)
 		unit.place_at(line)
 
+		unit.died.connect(_on_unit_died)
 		_units.append(unit)
 		_by_line[line] = unit
 
 		print("배치 — %s(%s) %s열 %s atk=%.0f range=%.0f hp=%.0f" % [
 			unit.display_name, unit.hero_id, line, unit.position, unit.atk, unit.atk_range, unit.max_hp
 		])
+
+
+func _on_unit_died(unit: Unit) -> void:
+	print("가신 쓰러짐 — %s(%s) %s열" % [unit.display_name, unit.hero_id, unit.line])
 
 
 func _emit_placed() -> void:

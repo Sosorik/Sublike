@@ -15,10 +15,19 @@ extends Area2D
 ## 공격했다. 연출·로그용.
 signal attacked(target: Enemy, packet: DamagePacket)
 
+## 쓰러졌다. 저지하던 적들이 다시 전진한다.
+signal died(unit: Unit)
+
 ## setup() 전에 참조될 때만 쓰는 대비값.
 const FALLBACK_COLOR: Color = Color(1.0, 1.0, 1.0, 1.0)
 const FALLBACK_CRIT_MULT: float = 2.0
 const FALLBACK_PROJECTILE_SPEED: float = 600.0
+const FALLBACK_MIN_DAMAGE: float = 1.0
+
+
+## 라인별 그룹 이름. 적이 자기 레인의 가신을 찾을 때 쓴다.
+static func lane_group(line: String) -> StringName:
+	return StringName("unit_" + line)
 
 var hero_id: String = ""
 var display_name: String = ""
@@ -34,6 +43,9 @@ var atk_range: float = 0.0    ## range 는 GDScript 내장 함수 이름이라 �
 var crit: float = 0.0
 var defense: float = 0.0
 
+## 동시에 저지할 수 있는 적 수. 0이면 저지하지 않는다 (원거리 가신).
+var block_count: int = 0
+
 var _attack_mode: String = ""
 var _attack_params: Dictionary = {}
 var _crit_mult: float = FALLBACK_CRIT_MULT
@@ -42,6 +54,9 @@ var _cooldown: float = 0.0
 ## Party 가 넣어 준다. 투사체를 쓰지 않는 근접 가신은 없어도 된다.
 var _projectile_scene: PackedScene = null
 var _projectiles_root: Node2D = null
+
+var _min_damage: float = FALLBACK_MIN_DAMAGE
+var _blockers: Array[Enemy] = []
 
 
 ## data/heroes.json 의 항목 하나를 받아 스탯과 외형을 세팅한다.
@@ -65,6 +80,9 @@ func setup(data: Dictionary) -> void:
 	atk_range = float(stats.get("range", 0.0))
 	crit = float(stats.get("crit", 0.0))
 	defense = float(stats.get("defense", 0.0))
+	block_count = int(stats.get("block_count", 0))
+	_min_damage = DataLoader.get_rule("min_damage", FALLBACK_MIN_DAMAGE)
+	_blockers.clear()
 
 	var atype: Dictionary = DataLoader.get_attack_type(attack_type_id)
 	_attack_mode = str(atype.get("mode", ""))
@@ -87,6 +105,59 @@ func set_projectile_source(scene: PackedScene, root: Node2D) -> void:
 func place_at(slot_line: String) -> void:
 	line = slot_line
 	position = BattleLayout.slot_position(slot_line)
+	# 같은 레인의 적이 찾을 수 있도록 라인 그룹에 들어간다.
+	var g: StringName = lane_group(line)
+	if not is_in_group(g):
+		add_to_group(g)
+
+
+## ---------------------------------------------------------------- 저지
+
+## 적이 저지를 요청한다. 자리가 있으면 받아 준다.
+func try_block(enemy: Enemy) -> bool:
+	if not is_alive() or _blockers.size() >= block_count:
+		return false
+	if enemy in _blockers:
+		return true
+	_blockers.append(enemy)
+	return true
+
+
+## 저지 해제. 적이 죽거나 풀에 반납될 때 스스로 부른다.
+func release_block(enemy: Enemy) -> void:
+	_blockers.erase(enemy)
+
+
+func get_block_load() -> int:
+	return _blockers.size()
+
+
+## ---------------------------------------------------------------- 피해
+
+## 저지 중인 적에게 맞는다. 방어력은 맞는 쪽이 뺀다.
+func take_damage(packet: DamagePacket) -> void:
+	if packet == null or not is_alive():
+		return
+
+	var dealt: float = maxf(_min_damage, packet.base - defense)
+	hp -= dealt
+
+	if hp <= 0.0:
+		hp = 0.0
+		_die()
+
+
+func _die() -> void:
+	modulate = Color(0.35, 0.35, 0.35, 0.6)   # 임시 표시. 쓰러진 가신
+
+	# 붙잡고 있던 적들을 놓아 준다. 순회 중 배열이 바뀌므로 복사본을 돈다.
+	var held: Array[Enemy] = _blockers.duplicate()
+	_blockers.clear()
+	for e in held:
+		if is_instance_valid(e):
+			e.on_blocker_lost()
+
+	died.emit(self)
 
 
 func is_alive() -> bool:
