@@ -37,6 +37,14 @@
   7개 그룹 색인: heroes 3 / enemies 3 / attack_types 10 / hero_skills 3 / aida_skills 12 / run_upgrades 8 / segments 4
   모든 접근자는 `duplicate(true)` 깊은 복사본 반환 — 원본 캐시는 밖으로 나가지 않는다
   `_` 접두 항목(`_template`)은 색인에서 제외
+- [완료] 오브젝트 풀 — `scripts/core/object_pool.gd` (autoload `ObjectPool`)
+  PackedScene 단위 풀. `prewarm/acquire/release/stats/clear_idle`
+  반납 시 트리에서 분리되므로 `_physics_process` 가 돌지 않는다
+  노드는 `_on_acquired()` / `_on_released()` 콜백을 선택적으로 가질 수 있다
+  검증: 재사용 3/3, 여유분 소진 시에만 신규 생성(created 4→6)
+- [완료] 적 스폰을 풀 경유로 교체 — `battle.gd` (instantiate/queue_free 제거)
+  적 속도를 `DataLoader.get_enemy("charger").speed` 에서 읽는다. 코드에 수치 없음
+  재사용 시 시그널 중복 연결 방지 (`is_connected` 확인)
 
 ### 알아둘 것
 - `.tscn`에서 노드 참조 export(`@export var x: Node2D`)는 노드 헤더에
@@ -48,5 +56,5 @@
   JSON에서 읽은 정수를 비교할 땐 반드시 `int()`로 맞춘다. 층·티어·스택수 전부 해당
 
 - [ ] 공식 튜토리얼 "Your first 2D game" 완주
-- [ ] 2주차 남은 것: 오브젝트 풀 → 적 3종 → 웨이브 스포너 → 슬롯/가신 배치
+- [ ] 2주차 남은 것: 적 3종 → 웨이브 스포너 → 슬롯/가신 배치
       → 공격 타입 3종 → DamagePacket → 아이다 HP/실패 처리

@@ -47,3 +47,8 @@ func resume_advance() -> void:
 
 func get_lane() -> String:
 	return _lane
+
+
+## ObjectPool 이 풀로 되돌릴 때 호출한다. 다음 재사용을 위해 상태를 끈다.
+func _on_released() -> void:
+	_advancing = false

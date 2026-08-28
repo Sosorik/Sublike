@@ -19,6 +19,7 @@ config/icon="res://icon.svg"
 [autoload]
 
 DataLoader="*res://scripts/data/data_loader.gd"
+ObjectPool="*res://scripts/core/object_pool.gd"
 
 [display]
 
