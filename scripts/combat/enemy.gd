@@ -20,6 +20,10 @@ const FALLBACK_MIN_DAMAGE: float = 1.0
 const FALLBACK_ATTACK_INTERVAL: float = 1.0
 const FALLBACK_CONTACT_X: float = 40.0
 const FALLBACK_DOT_TICK: float = 0.25
+const FALLBACK_SPRITE_HEIGHT: float = 110.0
+
+## 저지 중 공격할 때 전투 자세를 보여주는 시간.
+const ATTACK_POSE_SEC: float = 0.35
 
 ## 가신이 사거리 안의 적을 찾을 때 쓰는 그룹.
 const GROUP: StringName = &"enemies"
@@ -51,6 +55,11 @@ var _dot_timer: float = 0.0
 var _dot_tick: float = FALLBACK_DOT_TICK
 var _base_color: Color = FALLBACK_COLOR
 
+var _sprite: Sprite2D = null
+var _tex_idle: Texture2D = null
+var _tex_battle: Texture2D = null
+var _pose_left: float = 0.0
+
 
 ## data/enemies.json 의 항목 하나를 받아 스탯과 외형을 세팅한다.
 ## DataLoader 가 준 복사본이므로 여기서 값을 바꿔도 원본에 영향이 없다.
@@ -79,10 +88,7 @@ func setup(data: Dictionary) -> void:
 	if not is_in_group(GROUP):
 		add_to_group(GROUP)
 
-	# 임시 아트. 최종 스프라이트가 나오면 이 세 줄을 지운다.
-	_base_color = Color.from_string(str(data.get("debug_color", "")), FALLBACK_COLOR)
-	modulate = _base_color
-	scale = Vector2.ONE * float(data.get("debug_scale", 1.0))
+	_apply_art(data)
 
 
 ## 레인을 정하고 스폰 위치에 놓는다. setup() 을 먼저 호출해야 한다.
@@ -121,6 +127,7 @@ func is_alive() -> bool:
 
 func _physics_process(delta: float) -> void:
 	_tick_dots(delta)
+	_tick_pose(delta)
 	if not is_alive():
 		return
 
@@ -142,6 +149,52 @@ func _physics_process(delta: float) -> void:
 	if position.x <= BattleLayout.AIDA_HIT_X:
 		_advancing = false
 		reached_aida.emit.call_deferred(self)
+
+
+## 스프라이트가 있으면 그걸 쓰고, 없으면 임시 색 사각형으로 돌아간다.
+## 발끝이 레인 y 에 닿도록 offset 을 내린다.
+func _apply_art(data: Dictionary) -> void:
+	_sprite = get_node_or_null("Sprite2D") as Sprite2D
+	_tex_idle = _load_tex(str(data.get("sprite_idle", "")))
+	_tex_battle = _load_tex(str(data.get("sprite_battle", "")))
+	_pose_left = 0.0
+
+	if _sprite == null or _tex_idle == null:
+		_base_color = Color.from_string(str(data.get("debug_color", "")), FALLBACK_COLOR)
+		modulate = _base_color
+		scale = Vector2.ONE * float(data.get("debug_scale", 1.0))
+		return
+
+	# 스프라이트를 쓰면 기본색은 흰색이다. 불에 타면 여기서 주황으로 물든다.
+	_base_color = Color.WHITE
+	modulate = _base_color
+	scale = Vector2.ONE
+	_sprite.texture = _tex_idle
+	var h: float = float(data.get("sprite_height", FALLBACK_SPRITE_HEIGHT))
+	var k: float = h / float(_tex_idle.get_height())
+	_sprite.scale = Vector2(k, k)
+	_sprite.offset = Vector2(0.0, -float(_tex_idle.get_height()) * 0.5)
+
+
+func _load_tex(path: String) -> Texture2D:
+	if path.is_empty() or not ResourceLoader.exists(path):
+		return null
+	return load(path) as Texture2D
+
+
+func _show_attack_pose() -> void:
+	if _sprite == null or _tex_battle == null:
+		return
+	_sprite.texture = _tex_battle
+	_pose_left = ATTACK_POSE_SEC
+
+
+func _tick_pose(delta: float) -> void:
+	if _pose_left <= 0.0:
+		return
+	_pose_left -= delta
+	if _pose_left <= 0.0 and _sprite != null and _tex_idle != null:
+		_sprite.texture = _tex_idle
 
 
 ## ---------------------------------------------------------------- 속성
@@ -243,6 +296,7 @@ func _tick_blocked(delta: float) -> void:
 
 	_attack_timer -= delta
 	if _attack_timer <= 0.0:
+		_show_attack_pose()
 		_blocked_by.take_damage(DamagePacket.new(damage, false, ""))
 		_attack_timer = attack_interval
 
