@@ -30,7 +30,8 @@ enum State { IDLE, SPAWNING, WAITING_CLEAR, INTERMISSION, DONE }
 @export var prewarm_count: int = 24
 
 ## false 면 start() 를 직접 불러야 시작한다.
-@export var auto_start: bool = true
+## 층 진행이 붙은 뒤로는 Battle 이 층마다 start() 를 부른다.
+@export var auto_start: bool = false
 
 ## 스폰 한 마리마다 로그를 찍는다. 검증할 때만 켠다.
 @export var verbose: bool = false
@@ -53,6 +54,10 @@ var _max_alive: int = FALLBACK_MAX_ALIVE
 var _lane_index: int = 0
 var _state: State = State.IDLE
 
+## 층 난이도. RunState 가 넣어 준다.
+var _hp_mult: float = 1.0
+var _rate_mult: float = 1.0
+
 
 func _ready() -> void:
 	if enemy_scene == null:
@@ -70,6 +75,14 @@ func _ready() -> void:
 		# 자식의 _ready() 는 부모보다 먼저 돈다. 여기서 바로 시작하면
 		# 부모가 시그널을 연결하기 전에 1번 웨이브가 시작돼 wave_started 를 놓친다.
 		start.call_deferred()
+
+
+## 층 난이도를 넣는다. start() 전에 부른다.
+## 적 체력은 배수를 곱하고, 스폰 간격은 배수로 나눈다 (클수록 빨리 나온다).
+func set_difficulty(hp_mult: float, rate_mult: float) -> void:
+	_hp_mult = maxf(0.01, hp_mult)
+	_rate_mult = maxf(0.01, rate_mult)
+	_reload_rows()
 
 
 ## 1번 웨이브부터 시작한다.
@@ -151,7 +164,7 @@ func _next_wave() -> void:
 		return
 
 	var wave: Dictionary = _waves[_wave_index]
-	_interval = float(wave.get("spawn_interval", FALLBACK_INTERVAL))
+	_interval = float(wave.get("spawn_interval", FALLBACK_INTERVAL)) / _rate_mult
 	_queue = _build_queue(wave.get("entries", []) as Array)
 	_timer = 0.0
 	_state = State.SPAWNING
@@ -257,6 +270,15 @@ func _load_pattern() -> bool:
 	_intermission = float(pattern.get("intermission_sec", FALLBACK_INTERMISSION))
 	_max_alive = int(pattern.get("max_alive", FALLBACK_MAX_ALIVE))
 
-	for id in DataLoader.ids(DataLoader.GROUP_ENEMIES):
-		_rows[id] = DataLoader.get_enemy(id)
+	_reload_rows()
 	return true
+
+
+## 적 데이터를 다시 읽어 층 난이도를 반영한다.
+## 원본이 아니라 복사본을 고치는 것이라 JSON 은 그대로다.
+func _reload_rows() -> void:
+	_rows.clear()
+	for id in DataLoader.ids(DataLoader.GROUP_ENEMIES):
+		var row: Dictionary = DataLoader.get_enemy(id)
+		row["hp"] = float(row.get("hp", 1.0)) * _hp_mult
+		_rows[id] = row

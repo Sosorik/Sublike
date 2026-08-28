@@ -1,9 +1,12 @@
 extends Node2D
 
-## 전투 씬 루트.
+## 전투 씬 루트. 층 진행을 지휘한다.
 ##
-## 스폰은 EnemySpawner 가 전담한다. 여기서는 진행 상황 로그와 레인 안내선만 담당한다.
-## 아이다 HP / 실패 처리는 2주차 마지막 항목.
+## 스폰은 EnemySpawner, 편성은 Party, 진행 상태는 RunState 가 맡는다.
+## 여기서는 그것들을 이어 붙이고 층을 넘긴다.
+##
+## 층 클리어 → 다음 층. 마지막 층까지 끝나면 구간 클리어.
+## 아이다가 쓰러지면 실패 — 스폰을 멈추고 리트라이를 기다린다.
 
 ## 인스펙터에서 EnemySpawner 노드를 연결한다.
 @export var spawner: Node
@@ -13,6 +16,9 @@ extends Node2D
 
 ## 인스펙터에서 Aida 노드를 연결한다.
 @export var aida: Aida
+
+## 인스펙터에서 RunState 노드를 연결한다.
+@export var run_state: RunState
 
 ## 레인 안내선을 그린다. 좌표 확인용 임시 표시. 완성 전 끈다.
 @export var debug_draw: bool = true
@@ -39,6 +45,13 @@ func _ready() -> void:
 	aida.hp_changed.connect(_on_aida_hp_changed)
 	aida.died.connect(_on_aida_died)
 
+	if run_state == null:
+		push_error("Battle: run_state 가 비어 있다. 인스펙터에서 RunState 를 연결할 것.")
+		return
+	run_state.segment_cleared.connect(_on_segment_cleared)
+	# 자식들이 다 준비된 뒤 첫 층을 연다.
+	_start_floor.call_deferred()
+
 
 func _on_party_placed(units: Array) -> void:
 	print("편성 완료 — 가신 %d명" % units.size())
@@ -61,11 +74,16 @@ func _on_aida_hp_changed(hp: float, max_hp: float) -> void:
 
 
 func _on_aida_died() -> void:
-	print("=== 실패 — 아이다 쓰러짐. 웨이브 %d 진행 중, 처치 %d ===" % [
-		spawner.get_wave_number(), spawner.get_killed_count()
+	print("=== 실패 — %d층 웨이브 %d 에서 아이다 쓰러짐 (처치 %d) ===" % [
+		run_state.current_floor(), spawner.get_wave_number(), spawner.get_killed_count()
 	])
 	spawner.stop()
-	# 리트라이는 4주차 "실패 / 리트라이" 항목이다.
+
+
+## 판을 처음부터 다시. 씬을 통째로 다시 읽는 게 가장 확실하다 —
+## 쓰러진 가신, 남은 적, 풀 상태, 버프까지 전부 초기화된다.
+func retry() -> void:
+	get_tree().reload_current_scene()
 
 
 func _on_wave_started(wave_number: int, total_waves: int, enemy_count: int) -> void:
@@ -76,8 +94,28 @@ func _on_wave_cleared(wave_number: int) -> void:
 	print("웨이브 %d 클리어 — 누적 처치 %d" % [wave_number, spawner.get_killed_count()])
 
 
+## 이번 층의 난이도를 스포너에 넣고 웨이브를 시작한다.
+func _start_floor() -> void:
+	run_state.announce()
+	spawner.set_difficulty(run_state.enemy_hp_mult(), run_state.spawn_rate_mult())
+	print("─── %d층 (%d/%d) 시작 — 적 체력 ×%.2f, 스폰 ×%.2f%s" % [
+		run_state.current_floor(), run_state.floor_position(), run_state.total_floors(),
+		run_state.enemy_hp_mult(), run_state.spawn_rate_mult(),
+		"  [보스층]" if run_state.is_boss_floor() else ""
+	])
+	spawner.start()
+
+
 func _on_floor_cleared() -> void:
-	print("층 클리어 — 강화 3택은 4주차 항목")
+	print("%d층 클리어 — 처치 %d" % [run_state.current_floor(), spawner.get_killed_count()])
+	# 강화 3택은 다음 항목. 지금은 곧바로 다음 층으로 넘어간다.
+	if run_state.advance():
+		_start_floor()
+
+
+func _on_segment_cleared() -> void:
+	print("=== 구간 클리어 — %d층 전부 돌파 ===" % run_state.total_floors())
+	spawner.stop()
 
 
 ## 레인 안내선. 좌표가 문서와 맞는지 눈으로 확인하기 위한 임시 표시.

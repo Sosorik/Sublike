@@ -13,6 +13,19 @@ extends CanvasLayer
 ## 인스펙터에서 Aida 를 연결한다.
 @export var aida: Aida
 
+## 인스펙터에서 RunState / EnemySpawner / Battle 을 연결한다.
+@export var run_state: RunState
+@export var spawner: Node
+@export var battle: Node2D
+
+## 인스펙터에서 Status (Label) 를 연결한다. 층·웨이브 표시.
+@export var status_label: Label
+
+## 판이 끝났을 때 뜨는 판. 인스펙터에서 Result 계열을 연결한다.
+@export var result_panel: Control
+@export var result_label: Label
+@export var retry_button: Button
+
 ## 인스펙터에서 Slots (HBoxContainer) 를 연결한다.
 @export var slots_box: HBoxContainer
 
@@ -46,6 +59,19 @@ func _ready() -> void:
 	if auto_cast_box != null:
 		auto_cast_box.toggled.connect(_on_auto_cast_box_toggled)
 
+	if result_panel != null:
+		result_panel.visible = false
+	if retry_button != null:
+		retry_button.pressed.connect(_on_retry_pressed)
+
+	if run_state != null:
+		run_state.floor_changed.connect(_on_floor_changed)
+		run_state.segment_cleared.connect(_on_segment_cleared)
+	if spawner != null:
+		spawner.wave_started.connect(_on_wave_started)
+	aida.died.connect(_on_aida_died)
+	_refresh_status()
+
 
 func _unhandled_input(event: InputEvent) -> void:
 	if not (event is InputEventKey and event.pressed and not event.echo):
@@ -56,6 +82,9 @@ func _unhandled_input(event: InputEvent) -> void:
 		KEY_2: skills.try_use(1)
 		KEY_3: skills.try_use(2)
 		KEY_A: skills.toggle_auto_cast()
+		KEY_R:
+			if result_panel != null and result_panel.visible:
+				_on_retry_pressed()
 
 
 ## ---------------------------------------------------------------- 내부
@@ -112,6 +141,52 @@ func _on_auto_cast_changed(enabled: bool) -> void:
 
 func _on_auto_cast_box_toggled(pressed: bool) -> void:
 	skills.set_auto_cast(pressed)
+
+
+## ---------------------------------------------------------------- 진행 표시
+
+var _floor_text: String = ""
+var _wave_text: String = ""
+
+
+func _on_floor_changed(floor_number: int, position: int, total: int) -> void:
+	_floor_text = "%d층 (%d/%d)" % [floor_number, position, total]
+	_wave_text = ""
+	_refresh_status()
+
+
+func _on_wave_started(wave_number: int, total_waves: int, _count: int) -> void:
+	_wave_text = "웨이브 %d/%d" % [wave_number, total_waves]
+	_refresh_status()
+
+
+func _refresh_status() -> void:
+	if status_label == null:
+		return
+	status_label.text = _floor_text if _wave_text.is_empty() else "%s   %s" % [_floor_text, _wave_text]
+
+
+func _on_aida_died() -> void:
+	_show_result("실패
+아이다가 쓰러졌다")
+
+
+func _on_segment_cleared() -> void:
+	_show_result("구간 클리어
+%d층 전부 돌파" % run_state.total_floors())
+
+
+func _show_result(text: String) -> void:
+	if result_panel == null:
+		return
+	if result_label != null:
+		result_label.text = text
+	result_panel.visible = true
+
+
+func _on_retry_pressed() -> void:
+	if battle != null:
+		battle.retry()
 
 
 func _on_aida_hp_changed(hp: float, max_hp: float) -> void:

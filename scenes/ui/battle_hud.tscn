@@ -2,11 +2,15 @@
 
 [ext_resource type="Script" path="res://scripts/ui/battle_hud.gd" id="1_hud"]
 
-[node name="BattleHUD" type="CanvasLayer" node_paths=PackedStringArray("slots_box", "auto_cast_box", "hp_bar")]
+[node name="BattleHUD" type="CanvasLayer" node_paths=PackedStringArray("slots_box", "auto_cast_box", "hp_bar", "status_label", "result_panel", "result_label", "retry_button")]
 script = ExtResource("1_hud")
 slots_box = NodePath("Root/Slots")
 auto_cast_box = NodePath("Root/AutoCast")
 hp_bar = NodePath("Root/AidaHP")
+status_label = NodePath("Root/Status")
+result_panel = NodePath("Root/Result")
+result_label = NodePath("Root/Result/Text")
+retry_button = NodePath("Root/Result/Retry")
 
 [node name="Root" type="Control" parent="."]
 layout_mode = 3
@@ -56,3 +60,70 @@ offset_bottom = -20.0
 grow_horizontal = 0
 grow_vertical = 0
 text = "자동 시전 (A)"
+
+[node name="Status" type="Label" parent="Root"]
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -180.0
+offset_top = 20.0
+offset_right = 180.0
+offset_bottom = 56.0
+grow_horizontal = 2
+mouse_filter = 2
+theme_override_font_sizes/font_size = 24
+horizontal_alignment = 1
+
+[node name="Result" type="Control" parent="Root"]
+visible = false
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -260.0
+offset_top = -140.0
+offset_right = 260.0
+offset_bottom = 140.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Bg" type="ColorRect" parent="Root/Result"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.05, 0.06, 0.09, 0.9)
+
+[node name="Text" type="Label" parent="Root/Result"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = 40.0
+offset_bottom = -100.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_font_sizes/font_size = 34
+text = "결과"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Retry" type="Button" parent="Root/Result"]
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -110.0
+offset_top = -80.0
+offset_right = 110.0
+offset_bottom = -28.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_font_sizes/font_size = 22
+text = "다시 시작 (R)"
