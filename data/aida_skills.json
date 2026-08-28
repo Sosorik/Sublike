@@ -1,0 +1,19 @@
+{
+  "_comment": "아이다의 액티브. 슬롯 3개(buff/element/heal)에 장착. 해금한 가신이 전수.",
+  "skills": [
+    { "id": "buff_power",  "name": "격려", "slot": "buff", "cooldown": 12.0, "duration": 5.0, "effect": { "type": "atk_mult", "value": 1.5 }, "cutin_line": "다들, 조금만 더!" },
+    { "id": "buff_haste",  "name": "광폭", "slot": "buff", "cooldown": 14.0, "duration": 4.0, "effect": { "type": "atk_speed_mult", "value": 1.8 }, "cutin_line": "속도를 올려!" },
+    { "id": "buff_crit",   "name": "집중", "slot": "buff", "cooldown": 15.0, "duration": 6.0, "effect": { "type": "crit_add", "value": 0.35 }, "cutin_line": "급소를 노려." },
+    { "id": "buff_range",  "name": "확장", "slot": "buff", "cooldown": 16.0, "duration": 6.0, "effect": { "type": "range_mult", "value": 1.4 }, "cutin_line": "더 멀리 닿을 수 있어." },
+
+    { "id": "elem_fire",    "name": "화염 부여", "slot": "element", "cooldown": 14.0, "duration": 6.0, "effect": { "type": "dot", "dps": 8.0, "stack_max": 3 }, "cutin_line": "타올라라.", "vfx_note": "투사체 색상+트레일+피격 화염 파티클. 눌렀는지 화면만 봐도 알아야 함" },
+    { "id": "elem_ice",     "name": "빙결 부여", "slot": "element", "cooldown": 16.0, "duration": 6.0, "effect": { "type": "slow", "value": 0.5, "freeze_chance": 0.1 }, "cutin_line": "얼어붙어." },
+    { "id": "elem_thunder", "name": "뇌전 부여", "slot": "element", "cooldown": 15.0, "duration": 5.0, "effect": { "type": "chain", "targets": 3, "falloff": 0.6 }, "cutin_line": "번져 나가." },
+    { "id": "elem_holy",    "name": "신성 부여", "slot": "element", "cooldown": 20.0, "duration": 5.0, "effect": { "type": "ignore_defense", "value": 1.0 }, "cutin_line": "그 갑옷은 소용없어." },
+
+    { "id": "heal_instant", "name": "치유",     "slot": "heal", "cooldown": 10.0, "duration": 0.0, "effect": { "type": "heal_flat", "value": 40.0 }, "cutin_line": "괜찮아, 내가 있어." },
+    { "id": "heal_regen",   "name": "재생",     "slot": "heal", "cooldown": 16.0, "duration": 8.0, "effect": { "type": "heal_over_time", "hps": 10.0 }, "cutin_line": "천천히 회복해." },
+    { "id": "heal_shield",  "name": "보호막",   "slot": "heal", "cooldown": 18.0, "duration": 6.0, "effect": { "type": "shield", "value": 80.0 }, "cutin_line": "막아줄게." },
+    { "id": "heal_revive",  "name": "재소환",   "slot": "heal", "cooldown": 45.0, "duration": 0.0, "effect": { "type": "revive", "hp_ratio": 0.4 }, "cutin_line": "아직 끝나지 않았어." }
+  ]
+}

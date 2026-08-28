@@ -1,0 +1,8 @@
+{
+  "_comment": "가신 고유 스킬. 자동 발동 + 컷인. 15종 목표, 나머지는 파라미터 차별.",
+  "hero_skills": [
+    { "id": "taunt_wall",  "name": "방벽",     "cooldown": 15.0, "effect": { "type": "block_advance", "duration": 3.0 } },
+    { "id": "focus_fire",  "name": "집중사격", "cooldown": 12.0, "effect": { "type": "burst_damage", "mult": 3.0, "shots": 3 } },
+    { "id": "line_volley", "name": "일제사격", "cooldown": 14.0, "effect": { "type": "lane_damage", "mult": 2.0 } }
+  ]
+}

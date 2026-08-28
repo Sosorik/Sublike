@@ -1,0 +1,15 @@
+{
+  "_comment": "평타 공격 타입. 여러 가신이 공유한다. impl_cost가 low인 것부터 구현.",
+  "attack_types": [
+    { "id": "melee",       "name": "근접",       "impl_cost": "low",  "mode": "nearest_single",   "params": { "hit_effect": "slash" } },
+    { "id": "single_shot", "name": "단일 사격",  "impl_cost": "low",  "mode": "projectile_single","params": { "speed": 600.0 } },
+    { "id": "pierce_shot", "name": "관통 사격",  "impl_cost": "low",  "mode": "projectile_pierce","params": { "speed": 700.0, "max_pierce": 99 } },
+    { "id": "aoe_blast",   "name": "광역 폭발",  "impl_cost": "mid",  "mode": "projectile_aoe",   "params": { "speed": 400.0, "radius": 90.0 } },
+    { "id": "lane_sweep",  "name": "라인 전체",  "impl_cost": "mid",  "mode": "lane_all",         "params": { "duration": 0.25 } },
+    { "id": "chain_bolt",  "name": "연쇄",       "impl_cost": "mid",  "mode": "chain",            "params": { "targets": 3, "falloff": 0.65 } },
+    { "id": "ground_field","name": "지속 장판",  "impl_cost": "mid",  "mode": "field",            "params": { "radius": 110.0, "duration": 4.0, "tick": 0.4 } },
+    { "id": "guard_wall",  "name": "방벽",       "impl_cost": "mid",  "mode": "block",            "params": { "block_count": 3 } },
+    { "id": "summon_ally", "name": "소환",       "impl_cost": "high", "mode": "summon",           "params": { "count": 1, "lifetime": 20.0 } },
+    { "id": "screen_nova", "name": "화면 전체",  "impl_cost": "high", "mode": "screen",           "params": { "cooldown_mult": 5.0 } }
+  ]
+}

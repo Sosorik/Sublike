@@ -1,124 +1,165 @@
 # 복붙용 작업 지시문
 
-Claude Code에 그대로 붙여넣어 쓰는 프롬프트 모음.
+Claude Code에 그대로 붙여넣어 쓴다.
 
 ---
 
-## 세션 시작
+## 세션 시작 / 종료
 
+### 시작
 ```
-docs/PROGRESS.md 와 docs/CURRENT_PHASE.md 읽고,
+docs/PROGRESS.md 와 docs/CURRENT_PHASE.md 읽고
 지금 이어서 할 작업이 뭔지 알려줘. 아직 코드는 쓰지 마.
 ```
 
+### 종료
+```
+오늘 한 작업을 docs/PROGRESS.md 에 기록해줘.
+범위를 넘어서 미뤄둔 아이디어가 있으면 docs/BACKLOG.md 에 추가해줘.
+```
+
 ---
 
-## 1주차 — 기반
+## 첫 세션
 
-### 프로젝트 셋업
+### 1) 파악
+```
+CLAUDE.md, GDD.md, docs/CURRENT_PHASE.md 읽고
+프로젝트가 뭔지, 지금 뭘 만들어야 하는지 요약해줘. 아직 코드는 쓰지 마.
+```
+
+### 2) 프로젝트 초기화
 ```
 Godot 4 프로젝트를 초기화해줘.
-- docs/ARCHITECTURE.md 의 디렉토리 구조를 따를 것
-- project.godot 설정: 2D, 모바일 렌더러, 해상도 1080x1920 세로
-- autoload 3개 등록: GameState, DataLoader, ObjectPool (빈 껍데기로)
+- 2D, Mobile 렌더러
+- 기준 해상도 1280x720 가로
+- stretch mode: canvas_items, aspect: expand
+- 화면 방향 가로 고정
+- docs/ARCHITECTURE.md 의 디렉토리 구조대로 폴더 생성
 - .gitignore 포함
+- project.godot 설정까지
+
+.tscn 은 만들지 마. 내가 에디터에서 만들 거야.
 ```
 
-### 데이터 로더
+---
+
+## 1주차 — 화면에 뭔가 나오게 하기
+
+목표: **적 1마리가 오른쪽에서 걸어오고, 가신 1명이 쏴서 죽인다.**
+
+### 씬 만들기 (안내 요청)
 ```
-scripts/data/data_loader.gd 를 만들어줘.
-- 게임 시작 시 data/*.json 전부 로드해서 Dictionary로 캐시
-- get_hero(id), get_weapon(id), get_skill(id), get_segment(id) 접근자
-- "_" 로 시작하는 키는 주석이므로 무시
-- 파일이 없거나 파싱 실패하면 명확한 에러 로그 + 게임 중단
-- 원본 Dictionary를 반환하지 말고 duplicate(true) 해서 줄 것
+Battle 씬과 Enemy 씬, Unit 씬을 만들려고 해.
+Godot 에디터에서 어떤 노드를 어떤 순서로 추가해야 하는지
+클릭 단위로 알려줘. 나는 Godot 초보야.
+docs/ARCHITECTURE.md 의 씬 구조와 좌표 규약을 따를 것.
 ```
 
-### 아이다 이동
+### 적 이동
 ```
-아이다(플레이어) 이동을 구현해줘.
-- 좌하단 가상 조이스틱 + 키보드 WASD 동시 지원
-- 공격 없음. 이동만
-- 카메라가 부드럽게 추적 (lerp)
-- 이동속도는 하드코딩 말고 상수로 빼둘 것
+scripts/combat/enemy.gd 를 만들어줘.
+- x가 감소하는 방향으로 직진. 경로탐색 쓰지 마
+- data/enemies.json 의 charger 수치 사용
+- x < 120 에 도달하면 도착 시그널 발생
+- 지금은 색깔 사각형이어도 됨
 ```
 
-### 오브젝트 풀
+### 가신 자동 공격
 ```
-scripts/core/object_pool.gd 를 만들어줘.
-- 씬별로 풀을 관리 (적, 투사체, 이펙트)
-- acquire(scene_path) / release(node) 인터페이스
-- 풀이 비면 자동 확장하되, 확장 시 경고 로그
-- 반환 시 상태 초기화 (position, visible, 커스텀 reset() 호출)
-docs/ARCHITECTURE.md 의 오브젝트 풀 섹션 참고.
+scripts/combat/unit.gd 를 만들어줘.
+- 슬롯 좌표에 고정. 이동/방향전환 없음
+- 사거리 내에서 가장 왼쪽(=가장 위협적인) 적을 타겟
+- atk_speed 간격으로 공격
+- data/heroes.json 의 sera(single_shot) 수치 사용
+```
+
+### 데미지 처리
+```
+DamagePacket 파이프라인을 구현해줘.
+docs/ARCHITECTURE.md 의 "전투 파이프라인" 섹션을 정확히 따를 것.
+- DamagePacket 클래스: base, is_crit, element, source_hero_id
+- Enemy.take_damage(packet) 만 체력을 깎을 수 있다
+- 직접 hp -= damage 하는 코드는 만들지 마
 ```
 
 ---
 
 ## 2주차 — 전투 코어
 
-### 적 스포너
+### 데이터 로더
 ```
-적 스포너를 구현해줘.
+scripts/data/data_loader.gd 를 만들어줘.
+- 시작 시 data/*.json 전부 로드해서 Dictionary 캐시
+- get_hero(id), get_attack_type(id), get_hero_skill(id),
+  get_aida_skill(id), get_segment(id), get_enemy(id) 접근자
+- "_" 로 시작하는 키는 주석이므로 무시
+- 파싱 실패 시 명확한 에러 로그 + 중단
+- 원본을 반환하지 말고 duplicate(true) 해서 줄 것
+```
+
+### 오브젝트 풀
+```
+scripts/core/object_pool.gd 를 만들어줘.
+- 씬별 풀 관리 (적, 투사체, 이펙트, 데미지숫자)
+- acquire(scene_path) / release(node)
+- 풀이 비면 자동 확장하되 경고 로그
+- 반환 시 상태 초기화
+```
+
+### 웨이브 스포너
+```
+웨이브 스포너를 구현해줘.
 - data/enemies.json 의 wave_pattern 을 따를 것
-- 화면 밖 spawn_distance 위치에 랜덤 각도로 생성
-- 시간에 따라 spawn_interval 이 start→end 로 선형 감소
-- max_alive 초과 시 스폰 중단
+- spawn_x 에서 lanes_y 중 하나에 스폰
+- 층당 웨이브 5, 웨이브 사이 정비 3초
 - 반드시 ObjectPool 사용. instantiate() 직접 호출 금지
 ```
 
-### 적 AI
+### 라인 슬롯
 ```
-data/enemies.json 의 적 3종을 구현해줘.
-- rusher, tank: 플레이어 방향으로 직진. 경로탐색 쓰지 말 것
-- shooter: keep_distance_and_shoot. 사거리 유지하며 투사체 발사
-- 충돌은 단순 원형 판정
-- 적 300마리 동시 표시에서 60fps 유지가 목표
-```
-
-### 무기 시스템
-```
-무기 시스템의 기반을 만들어줘.
-- data/weapons.json 의 fire_mode 별로 분기하는 구조
-- 지금은 impl_cost 가 "low" 인 것 중 whip, bolt, homing 3개만 구현
-- 나머지는 나중에 추가할 수 있도록 확장 가능한 형태로
-- 타겟팅: 가장 가까운 적
-- 무기는 캐릭터에 종속되지 않음. 여러 캐릭터가 공유 가능해야 함
-```
-
-### DamagePacket
-```
-전투 데미지 파이프라인을 구현해줘.
-docs/ARCHITECTURE.md 의 "전투 파이프라인" 섹션을 정확히 따를 것.
-- DamagePacket 클래스: base, crit, element, source_hero_id
-- 모든 데미지는 반드시 이 패킷을 거친다
-- Enemy.take_damage(packet) 만 체력을 깎을 수 있다
-- 직접 hp -= damage 하는 코드는 만들지 말 것
+전열/중열/후열 슬롯 시스템을 구현해줘.
+- 각 라인에 슬롯 N개 (프로토타입은 각 1개)
+- data/heroes.json 의 line 값으로 배치 가능 여부 판정
+- 좌표는 docs/ARCHITECTURE.md 의 좌표 규약 사용
 ```
 
 ---
 
-## 3주차 — 아이다 스킬
+## 3주차 — 아이다 + 컷인 (가장 중요)
 
-### 액티브 버튼 3개
+### 버튼 3개
 ```
 아이다의 액티브 스킬 시스템을 구현해줘.
-- 우하단 버튼 3개: buff / element / heal 슬롯
-- data/skills.json 에서 장착된 스킬을 읽어옴
-- 쿨타임 표시 (원형 게이지)
-- 각 슬롯마다 자동시전 토글
+- 하단 버튼 3개: buff / element / heal
+- data/aida_skills.json 에서 장착 스킬을 읽어옴
+- 원형 쿨타임 게이지
+- 슬롯별 자동시전 토글
 - 마나 같은 추가 자원 없음. 쿨타임만
+- 아이다는 이동하지 않음
 ```
 
-### 속성 부여 (가장 중요)
+### 속성 부여 (핵심 검증 항목)
 ```
 elem_fire 속성 부여를 구현해줘.
 이게 프로토타입의 핵심 검증 항목이라 시각적 임팩트가 최우선이다.
-- 지속시간 동안 파티 전체 공격에 화염 속성 부여
+- 지속시간 동안 전 가신 공격에 화염 속성 부여
 - 투사체 색상 변경 + 트레일 파티클
 - 피격 시 화염 파티클 + 지속 피해(DoT)
-- 적 체력바에 화상 표시
+- 적에게 화상 표시
 - "버튼을 눌렀는지 안 눌렀는지 화면만 봐도 즉시 알 수 있어야 한다"
+```
+
+### 컷인 연출 (핵심 검증 항목)
+```
+스킬 컷인을 구현해줘.
+docs/ARCHITECTURE.md 의 "컷인 시스템" 섹션대로.
+- 상반신 이미지 슬라이드 인 0.15s → 유지 0.3s → 아웃 0.15s
+- 대사 텍스트 (data 의 cutin_line) + 화면 플래시
+- 전투는 멈추지 않는다
+- 정지 이미지 + Tween 만 사용. 애니메이션 프레임 없음
+- 연속 발동 시 큐잉
+- 지금은 이미지 대신 색깔 사각형이어도 됨
 ```
 
 ---
@@ -129,7 +170,7 @@ elem_fire 속성 부여를 구현해줘.
 ```
 층 진행 시스템을 구현해줘.
 - data/floors.json 의 seg_01 (1~6층)
-- 층당 목표: 일정 시간 생존 또는 일정 수 처치
+- 층당 웨이브 5 클리어 시 다음 층
 - 층 클리어 시 강화 3택 UI (data/run_upgrades.json 에서 랜덤 3개)
 - difficulty_curve 적용
 - 6층은 보스층
@@ -141,22 +182,16 @@ elem_fire 속성 부여를 구현해줘.
 - 보스 사망 → 화면 정지 → 마석 발광 → 가신 강림
 - 2~3초, 스킵 가능
 - 연출 후 해금된 캐릭터 카드 표시
-- 지금은 연출만. 가챠 재화 순환은 아직 구현하지 않음
+- 가챠 재화 순환은 아직 구현하지 않음
 ```
 
 ---
 
-## 검증 및 유지보수
+## 유지보수
 
 ### 데이터 검증
 ```
 python3 scripts/validate_data.py 실행하고 오류 있으면 고쳐줘.
-```
-
-### 세션 종료
-```
-오늘 한 작업을 docs/PROGRESS.md 에 기록해줘.
-그리고 범위를 넘어서 미뤄둔 아이디어가 있으면 docs/BACKLOG.md 에 추가해줘.
 ```
 
 ### 범위 이탈 방지
@@ -165,11 +200,19 @@ python3 scripts/validate_data.py 실행하고 오류 있으면 고쳐줘.
 범위 밖이면 구현하지 말고 docs/BACKLOG.md 에만 적어줘.
 ```
 
-### 캐릭터 추가 (Phase 3 이후)
+### 가신 추가 (Phase 3 이후)
 ```
 data/heroes.json 에 새 가신을 추가하려고 해.
 - 층: N
-- 무기: (weapons.json 의 기존 무기 ID)
-- 패시브: (heroes.json 의 _passive_types 참고)
-JSON만 수정하고 코드는 건드리지 마. 코드 수정이 필요하다면 왜 필요한지 먼저 설명해줘.
+- 라인: front/mid/back
+- 공격타입: (attack_types.json 의 기존 ID)
+- 고유스킬: (hero_skills.json 의 기존 ID)
+JSON만 수정하고 코드는 건드리지 마.
+코드 수정이 필요하면 왜 필요한지 먼저 설명해줘.
+```
+
+### 씬 구조가 필요할 때
+```
+(기능) 을 만들려면 어떤 씬 구조가 필요한지
+Godot 에디터 클릭 단위로 알려줘. .tscn 은 직접 만들지 마.
 ```

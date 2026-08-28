@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
-"""데이터 무결성 검사. 커밋 전에 실행할 것.
-    python3 scripts/validate_data.py
-"""
+"""데이터 무결성 검사.  python3 scripts/validate_data.py"""
 import json, sys, pathlib
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
@@ -11,98 +9,95 @@ errors, warnings = [], []
 def load(name):
     p = DATA / name
     if not p.exists():
-        errors.append(f"파일 없음: {name}")
-        return None
+        errors.append(f"파일 없음: {name}"); return None
     try:
         return json.loads(p.read_text(encoding="utf-8"))
     except json.JSONDecodeError as e:
-        errors.append(f"JSON 파싱 실패 {name}: {e}")
-        return None
+        errors.append(f"JSON 파싱 실패 {name}: {e}"); return None
 
-heroes  = load("heroes.json")
-weapons = load("weapons.json")
-skills  = load("skills.json")
-floors  = load("floors.json")
-enemies = load("enemies.json")
-upgrades= load("run_upgrades.json")
+heroes   = load("heroes.json")
+atypes   = load("attack_types.json")
+hskills  = load("hero_skills.json")
+askills  = load("aida_skills.json")
+floors   = load("floors.json")
+enemies  = load("enemies.json")
+upgrades = load("run_upgrades.json")
 
 if not errors:
-    weapon_ids = {w["id"] for w in weapons["weapons"]}
-    skill_ids  = {s["id"] for s in skills["skills"]}
+    atype_ids  = {a["id"] for a in atypes["attack_types"]}
+    hskill_ids = {s["id"] for s in hskills["hero_skills"]}
+    askill_ids = {s["id"] for s in askills["skills"]}
     hero_list  = [h for h in heroes["heroes"] if not h["id"].startswith("_")]
     hero_ids   = {h["id"] for h in hero_list}
+    valid_lines = {"front", "mid", "back"}
 
-    # 1. 캐릭터 -> 무기 참조
     for h in hero_list:
-        if h["weapon_id"] not in weapon_ids:
-            errors.append(f"[heroes] '{h['id']}' 가 존재하지 않는 무기 참조: {h['weapon_id']}")
+        if h["attack_type_id"] not in atype_ids:
+            errors.append(f"[heroes] '{h['id']}' 없는 공격타입: {h['attack_type_id']}")
+        if h["skill_id"] not in hskill_ids:
+            errors.append(f"[heroes] '{h['id']}' 없는 고유스킬: {h['skill_id']}")
         gs = h.get("grants_skill")
-        if gs and gs not in skill_ids:
-            errors.append(f"[heroes] '{h['id']}' 가 존재하지 않는 스킬 참조: {gs}")
+        if gs and gs not in askill_ids:
+            errors.append(f"[heroes] '{h['id']}' 없는 아이다 스킬 전수: {gs}")
+        if h["line"] not in valid_lines:
+            errors.append(f"[heroes] '{h['id']}' 잘못된 라인: {h['line']}")
+        if not h.get("cutin_line"):
+            warnings.append(f"[heroes] '{h['id']}' 컷인 대사 없음")
 
-    # 2. 층 중복 배치
     seen = {}
     for h in hero_list:
         f = h.get("floor", 0)
         if f == 0: continue
-        if f in seen:
-            errors.append(f"[heroes] 층 {f} 중복 배치: {seen[f]} / {h['id']}")
+        if f in seen: errors.append(f"[heroes] 층 {f} 중복: {seen[f]} / {h['id']}")
         seen[f] = h["id"]
-        if not (1 <= f <= 100):
-            errors.append(f"[heroes] '{h['id']}' 층 범위 초과: {f}")
+        if not (1 <= f <= 100): errors.append(f"[heroes] '{h['id']}' 층 범위 초과: {f}")
 
-    # 3. 구간 -> 보스 참조
     for seg in floors["segments"]:
         b = seg.get("boss_hero_id")
-        if b and b not in hero_ids:
-            errors.append(f"[floors] '{seg['id']}' 가 존재하지 않는 보스 참조: {b}")
         if b:
-            bh = next(h for h in hero_list if h["id"] == b)
-            if bh["floor"] not in seg["floors"]:
-                errors.append(f"[floors] '{seg['id']}' 보스 '{b}' 의 층({bh['floor']})이 구간 범위 밖")
+            if b not in hero_ids:
+                errors.append(f"[floors] '{seg['id']}' 없는 보스: {b}")
+            else:
+                bh = next(h for h in hero_list if h["id"] == b)
+                if bh["floor"] not in seg["floors"]:
+                    errors.append(f"[floors] '{seg['id']}' 보스 '{b}' 층({bh['floor']})이 구간 밖")
 
-    # 4. 층 연속성
-    all_floors = []
-    for seg in floors["segments"]:
-        all_floors += seg["floors"]
-    if all_floors != sorted(all_floors):
-        errors.append("[floors] 층 순서가 오름차순이 아님")
-    if len(set(all_floors)) != len(all_floors):
-        errors.append("[floors] 층 중복 정의")
+    all_floors = [f for seg in floors["segments"] for f in seg["floors"]]
+    if all_floors != sorted(all_floors): errors.append("[floors] 층 순서 오름차순 아님")
+    if len(set(all_floors)) != len(all_floors): errors.append("[floors] 층 중복 정의")
 
-    # 5. 스킬 슬롯 유효성
-    valid_slots = {"buff", "element", "heal"}
-    for s in skills["skills"]:
-        if s["slot"] not in valid_slots:
-            errors.append(f"[skills] '{s['id']}' 잘못된 슬롯: {s['slot']}")
+    for s in askills["skills"]:
+        if s["slot"] not in {"buff", "element", "heal"}:
+            errors.append(f"[aida_skills] '{s['id']}' 잘못된 슬롯: {s['slot']}")
         if s["cooldown"] <= 0:
-            errors.append(f"[skills] '{s['id']}' 쿨타임이 0 이하")
+            errors.append(f"[aida_skills] '{s['id']}' 쿨타임 0 이하")
+    for slot in {"buff", "element", "heal"}:
+        if not any(s["slot"] == slot for s in askills["skills"]):
+            errors.append(f"[aida_skills] 슬롯 '{slot}' 비어 있음")
 
-    # 6. 슬롯별 최소 1개
-    for slot in valid_slots:
-        if not any(s["slot"] == slot for s in skills["skills"]):
-            errors.append(f"[skills] 슬롯 '{slot}' 에 스킬이 하나도 없음")
+    lanes = enemies["wave_pattern"]["lanes_y"]
+    for ln in valid_lines:
+        if ln not in lanes: errors.append(f"[enemies] lanes_y에 '{ln}' 없음")
 
-    # --- 경고 (기획 목표 대비) ---
-    if len(hero_list) < 40:
-        warnings.append(f"가신 {len(hero_list)}/40 명 (목표 미달, 확장 필요)")
-    if len(weapons["weapons"]) < 15:
-        warnings.append(f"무기 {len(weapons['weapons'])}/15 종")
-    total_floors = len(all_floors)
-    if total_floors < 100:
-        warnings.append(f"층 {total_floors}/100 정의됨")
+    # 라인 커버리지
+    for ln in valid_lines:
+        if not any(h["line"] == ln for h in hero_list):
+            warnings.append(f"라인 '{ln}' 담당 가신 없음")
 
-    low = [w["id"] for w in weapons["weapons"] if w["impl_cost"] == "low"]
-    warnings.append(f"먼저 구현할 저비용 무기: {', '.join(low)}")
+    if len(hero_list) < 40:      warnings.append(f"가신 {len(hero_list)}/40 명")
+    if len(hskills["hero_skills"]) < 15: warnings.append(f"고유스킬 {len(hskills['hero_skills'])}/15 종")
+    if len(all_floors) < 100:    warnings.append(f"층 {len(all_floors)}/100 정의됨")
+    low = [a["id"] for a in atypes["attack_types"] if a["impl_cost"] == "low"]
+    warnings.append(f"먼저 구현할 저비용 공격타입: {', '.join(low)}")
 
-print("=" * 50)
+print("=" * 52)
 if errors:
-    print(f"❌ 오류 {len(errors)}건")
-    for e in errors: print(f"  - {e}")
+    print(f"오류 {len(errors)}건")
+    for e in errors: print(f"  X {e}")
 else:
-    print("✅ 데이터 무결성 통과")
+    print("데이터 무결성 통과")
 if warnings:
-    print(f"\n⚠️  참고 {len(warnings)}건")
+    print(f"\n참고 {len(warnings)}건")
     for w in warnings: print(f"  - {w}")
-print("=" * 50)
+print("=" * 52)
 sys.exit(1 if errors else 0)

@@ -2,79 +2,133 @@
 
 ## 씬 구조
 
+**사용자가 Godot 에디터에서 직접 만든다. Claude는 .gd 스크립트만 작성한다.**
+
 ```
 Main (Node)
-├── GameState (autoload)      # 전역 상태. 진행도, 해금 목록
-├── DataLoader (autoload)     # JSON 로드 및 캐시
-├── ObjectPool (autoload)     # 적/투사체/이펙트 풀
+├── GameState   (autoload)   진행도, 해금 목록
+├── DataLoader  (autoload)   JSON 로드/캐시
+├── ObjectPool  (autoload)   적/투사체/이펙트 풀
 │
-├── Lobby (탑 기슭)
-│   ├── SegmentSelect         # 구간 선택
-│   ├── PartyEdit             # 파티 편성
-│   ├── SkillEquip            # 아이다 슬롯 3개 장착
-│   └── SummonUI              # 가챠
+├── Lobby
+│   ├── SegmentSelect        구간 선택
+│   ├── PartyEdit            라인별 슬롯 편성
+│   ├── SkillEquip           아이다 슬롯 3개 장착
+│   └── SummonUI             가챠
 │
-└── Run (등반)
-    ├── Arena                 # 랜덤 생성 맵
-    ├── Aida                  # 플레이어. 이동 + 액티브 3
-    ├── Party (Node2D)        # 소녀 1~3명. 아이다 추종
-    ├── EnemySpawner
+└── Battle
+    ├── Aida                 좌측 고정. 이동 없음
+    ├── Lanes (Node2D)
+    │   ├── FrontLane        슬롯 N개
+    │   ├── MidLane
+    │   └── BackLane
+    ├── EnemySpawner         우측에서 스폰
     ├── ProjectileLayer
-    └── RunHUD                # 체력, 층, 쿨타임 3버튼
+    ├── EffectLayer          파티클, 화면 연출
+    ├── CutinLayer           스킬 컷인
+    └── BattleHUD            아이다 HP, 층/웨이브, 버튼 3개
 ```
+
+## 좌표 규약
+
+레퍼런스: **PvZ의 레인 분리** + **명일방주의 전열 저지 / 후열 지원**.
+
+```
+화면 1280x720 가로.  적은 오른쪽 → 왼쪽으로만 이동.
+
+           후열      중열      전열              스폰
+y=220  ┄┄┄┄[니나]┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄  ←← 적
+y=300  ┄┄┄┄┄┄┄┄┄┄[세라]┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄  ←← 적
+y=380  ┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄[리엔]┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄  ←← 적
+ 아이다
+ x=80        300      450      600           x=1400
+```
+
+| 이름 | x | y | 역할 |
+|---|---|---|---|
+| 아이다 | 80 | 300 | 고정. 이동 없음 |
+| 전열 front | **600** | 380 | 가장 오른쪽. 적을 **먼저 만나 저지** |
+| 중열 mid | **450** | 300 | 근접 딜 |
+| 후열 back | **300** | 220 | 원거리 딜. 아이다에 가장 가까워 안전 |
+
+- **적은 x가 감소하는 방향으로만 이동한다.** 경로탐색 없음
+- **적은 레인(y)을 바꾸지 않는다.** 스폰된 레인을 따라 직진만 한다
+- 적이 x < 120에 도달하면 아이다에게 피해
+- 가신은 슬롯 좌표에 고정. 이동·방향전환 없음
+- **가신은 레인과 무관하게 사거리(2D 거리) 안의 적을 공격한다.**
+  전열이 붙잡아 둔 적을 중열·후열이 레인을 넘어 함께 때린다.
+  ← 편성 조합의 재미가 여기서 나온다 (검증 질문 1번)
+
+## 진군 차단 규칙
+
+**적은 가신에게 막힌다. 타워디펜스형이다.**
+
+```
+적 전진 → 같은 레인의 가신과 접촉 → 정지 → 서로 공격
+  → 가신 사망 시 적이 다시 전진
+  → 그 레인에 가신이 없으면 아이다까지 직진
+```
+
+- 저지 중인 적은 이동을 멈추고 그 가신을 공격한다
+- 가신 1명이 저지할 수 있는 적 수에는 상한이 있다 (`block_count`, 명일방주의 저지 수)
+  상한을 넘은 적은 막히지 않고 지나간다
+- `taunt_wall` / `guard_wall` 스킬은 **광역 강제 정지**. 상시 저지와 별개다
 
 ## 데이터 흐름
 
 ```
 data/*.json
    ↓ DataLoader (게임 시작 시 1회)
-   ↓
 Dictionary 캐시
-   ↓ 조회
-HeroInstance / WeaponInstance  ← 런타임 객체
+   ↓ duplicate(true)
+HeroInstance / EnemyInstance  ← 런타임 객체
    ↓
 전투 시스템
 ```
 
-**중요**: JSON 원본을 직접 수정하지 않는다. 런타임 수치는 인스턴스에 복사해서 쓴다.
+**JSON 원본을 직접 수정하지 않는다.** 런타임 수치는 인스턴스에 복사해 쓴다.
 
 ## 전투 파이프라인
 
 ```
-1. Weapon.tick(delta)
-2. 쿨타임 도달 → 타겟 탐색 (가장 가까운 적)
-3. 투사체/공격 생성 (풀에서 꺼냄)
+1. Unit.tick(delta)
+2. 쿨타임 도달 → 타겟 탐색 (사거리 내 가장 왼쪽 적 = 가장 위협적)
+3. 공격 생성 (ObjectPool에서 acquire)
 4. 충돌 → DamagePacket 생성
-   { base, crit, element, source_hero_id }
-5. 버프 적용 (아이다 슬롯1)
-6. 속성 적용 (아이다 슬롯2)
-7. 패시브 적용 (캐릭터별)
+   { base, is_crit, element, source_hero_id }
+5. 아이다 버프 적용    (slot 1)
+6. 아이다 속성 적용    (slot 2)
+7. 런 내 강화 적용
 8. Enemy.take_damage(packet)
-9. 사망 → 파편 드롭 + 풀 반환
+9. 사망 → 파편 드롭 + ObjectPool.release
 ```
 
-**DamagePacket을 반드시 거친다.** 여기가 모든 버프/속성/패시브가 합류하는 지점이다.
+**모든 데미지는 DamagePacket을 거친다.**
 직접 `hp -= damage` 하는 코드를 만들지 않는다.
+
+## 컷인 시스템
+
+```
+스킬 발동
+  → CutinLayer에 상반신 이미지 슬라이드 인 (0.15s)
+  → 대사 텍스트 표시 + 화면 플래시
+  → 유지 (0.3s)
+  → 슬라이드 아웃 (0.15s)
+총 0.6초. 전투는 멈추지 않는다.
+```
+
+- 정지 이미지 + Tween만 사용. 애니메이션 프레임 없음
+- 연속 발동 시 큐잉 (겹치지 않게)
 
 ## 오브젝트 풀
 
-```gdscript
-# 필수 대상
-- Enemy (300+)
-- Projectile (500+)
-- DamageNumber
-- HitEffect
-- ShardPickup
-
-# 금지
-instantiate() / queue_free() 를 매 프레임 호출하는 코드
+```
+필수 대상: Enemy(100+), Projectile(200+), DamageNumber, HitEffect, ShardPickup
+금지: 매 프레임 instantiate() / queue_free()
 ```
 
-## 상태 저장 시점
+## 저장 시점
 
-- 로비 진입 시
-- 런 종료 시 (클리어/사망 모두)
-- 파편 소비 시
-- 앱 백그라운드 전환 시 (모바일)
+로비 진입 / 전투 종료(클리어·실패) / 파편 소비 / 앱 백그라운드 전환
 
-**런 도중에는 저장하지 않는다.** 중간 저장은 스코프 밖.
+**전투 도중에는 저장하지 않는다.**
