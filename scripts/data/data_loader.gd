@@ -18,6 +18,7 @@ const GROUP_AIDA_SKILLS: String = "aida_skills"
 const GROUP_UPGRADES: String = "run_upgrades"
 const GROUP_SEGMENTS: String = "segments"
 const GROUP_COMBAT_RULES: String = "combat_rules"
+const GROUP_AIDA: String = "aida"
 
 ## 그룹 → { 파일 경로, 배열이 담긴 최상위 키 }.
 ## 새 데이터 파일이 생기면 여기 한 줄만 추가한다.
@@ -30,6 +31,7 @@ const SOURCES: Dictionary = {
 	GROUP_UPGRADES: { "path": "res://data/run_upgrades.json", "key": "upgrades" },
 	GROUP_SEGMENTS: { "path": "res://data/floors.json", "key": "segments" },
 	GROUP_COMBAT_RULES: { "path": "res://data/combat_rules.json", "key": "rules" },
+	GROUP_AIDA: { "path": "res://data/aida.json", "key": "aida" },
 }
 
 ## id가 이 접두어로 시작하면 주석·템플릿이므로 색인에서 뺀다. (heroes.json 의 "_template")
@@ -130,6 +132,11 @@ func get_segment(id: String) -> Dictionary:
 	return get_entry(GROUP_SEGMENTS, id)
 
 
+## 아이다 본인의 데이터. data/aida.json 참조.
+func get_aida() -> Dictionary:
+	return get_entry(GROUP_AIDA, "aida")
+
+
 ## 전투 공통 수치 하나. data/combat_rules.json 참조.
 ## 없으면 default 를 돌려주고 오류를 찍지 않는다 (호출부에 대비값이 있다는 뜻).
 func get_rule(id: String, default_value: float) -> float:
@@ -147,6 +154,15 @@ func get_wave_pattern() -> Dictionary:
 		push_error("DataLoader: enemies.json 에 wave_pattern 이 없다.")
 		return {}
 	return (pattern as Dictionary).duplicate(true)
+
+
+## 구간 안에서 층이 오를 때마다 곱해지는 난이도 계수. floors.json 참조.
+func get_per_floor_curve() -> Dictionary:
+	var doc: Dictionary = _raw.get(GROUP_SEGMENTS, {})
+	var curve: Variant = doc.get("per_floor_curve")
+	if typeof(curve) != TYPE_DICTIONARY:
+		return {}
+	return (curve as Dictionary).duplicate(true)
 
 
 ## 해당 층이 속한 구간. 없으면 빈 Dictionary.

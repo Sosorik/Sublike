@@ -10,55 +10,43 @@
 [ext_resource type="Script" path="res://scripts/combat/aida_skills.gd" id="8_skills"]
 [ext_resource type="PackedScene" path="res://scenes/ui/battle_hud.tscn" id="9_hud"]
 [ext_resource type="PackedScene" path="res://scenes/ui/cutin_layer.tscn" id="10_cutin"]
-[ext_resource type="Script" path="res://scripts/ui/battle_hud.gd" id="10_oiw7q"]
-[ext_resource type="Script" path="res://scripts/ui/cutin_layer.gd" id="12_mxe8n"]
 
-[node name="Battle" type="Node2D" unique_id=348380701 node_paths=PackedStringArray("spawner", "party", "aida")]
+[node name="Battle" type="Node2D" node_paths=PackedStringArray("spawner", "party", "aida")]
 script = ExtResource("1_battle")
 spawner = NodePath("EnemySpawner")
 party = NodePath("Party")
 aida = NodePath("Aida")
 
-[node name="Enemies" type="Node2D" parent="." unique_id=1001645711]
+[node name="Enemies" type="Node2D" parent="."]
 
-[node name="Projectiles" type="Node2D" parent="." unique_id=799077844]
+[node name="Projectiles" type="Node2D" parent="."]
 
-[node name="Lanes" type="Node2D" parent="." unique_id=764670604]
+[node name="Lanes" type="Node2D" parent="."]
 
-[node name="Aida" type="Node2D" parent="." unique_id=389900239]
+[node name="Aida" type="Node2D" parent="."]
 script = ExtResource("7_aida")
 
-[node name="Party" type="Node" parent="." unique_id=99166099 node_paths=PackedStringArray("units_root", "projectiles_root")]
+[node name="Party" type="Node" parent="." node_paths=PackedStringArray("units_root", "projectiles_root")]
 script = ExtResource("4_party")
 unit_scene = ExtResource("5_unit")
 units_root = NodePath("../Lanes")
 projectile_scene = ExtResource("6_projectile")
 projectiles_root = NodePath("../Projectiles")
 
-[node name="AidaSkills" type="Node" parent="." unique_id=105520285 node_paths=PackedStringArray("party", "aida")]
+[node name="AidaSkills" type="Node" parent="." node_paths=PackedStringArray("party", "aida")]
 script = ExtResource("8_skills")
 party = NodePath("../Party")
 aida = NodePath("../Aida")
 
-[node name="EnemySpawner" type="Node" parent="." unique_id=850618608 node_paths=PackedStringArray("enemies_root")]
+[node name="EnemySpawner" type="Node" parent="." node_paths=PackedStringArray("enemies_root")]
 script = ExtResource("3_spawner")
 enemy_scene = ExtResource("2_enemy")
 enemies_root = NodePath("../Enemies")
 
-[node name="BattleHUD" type="CanvasLayer" parent="." unique_id=1561955876 node_paths=PackedStringArray("skills", "aida", "slots_box", "auto_cast_box", "hp_bar") instance=ExtResource("9_hud")]
-script = ExtResource("10_oiw7q")
+[node name="BattleHUD" parent="." node_paths=PackedStringArray("skills", "aida") instance=ExtResource("9_hud")]
 skills = NodePath("../AidaSkills")
 aida = NodePath("../Aida")
-slots_box = NodePath("Root/Slots")
-auto_cast_box = NodePath("Root/AutoCast")
-hp_bar = NodePath("Root/AidaHP")
 
-[node name="CutinLayer" type="CanvasLayer" parent="." unique_id=945442071 node_paths=PackedStringArray("skills", "panel", "portrait", "name_label", "line_label", "flash") instance=ExtResource("10_cutin")]
-layer = 10
-script = ExtResource("12_mxe8n")
+[node name="CutinLayer" parent="." node_paths=PackedStringArray("skills", "aida") instance=ExtResource("10_cutin")]
 skills = NodePath("../AidaSkills")
-panel = NodePath("Panel")
-portrait = NodePath("Panel/Portrait")
-name_label = NodePath("Panel/Name")
-line_label = NodePath("Panel/Line")
-flash = NodePath("Flash")
+aida = NodePath("../Aida")

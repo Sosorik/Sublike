@@ -15,14 +15,17 @@ const HOLD: float = 0.3
 const SLIDE_OUT: float = 0.15
 
 ## 화면 밖 / 안 x 좌표.
-const OFF_X: float = -460.0
-const ON_X: float = 24.0
+const OFF_X: float = -480.0
+const ON_X: float = 16.0
 
 ## 큐가 이보다 길어지면 오래된 것을 버린다. 밀린 컷인을 다 보여줄 이유가 없다.
 const MAX_QUEUE: int = 2
 
 ## 인스펙터에서 AidaSkills 를 연결한다.
 @export var skills: AidaSkills
+
+## 인스펙터에서 Aida 를 연결한다. 슬롯별 컷인 상반신을 여기서 얻는다.
+@export var aida: Aida
 
 ## 인스펙터에서 각 노드를 연결한다.
 @export var panel: Control
@@ -84,8 +87,17 @@ func _play_next() -> void:
 		name_label.text = str(skill.get("name", ""))
 	if line_label != null:
 		line_label.text = str(skill.get("cutin_line", ""))
+
+	# 슬롯마다 다른 표정을 쓴다. 없으면 직전 것을 그대로 둔다.
 	if portrait != null:
-		portrait.modulate = tint
+		var path: String = ""
+		if aida != null:
+			path = aida.get_cutin_portrait(str(skill.get("slot", "")))
+		if not path.is_empty() and ResourceLoader.exists(path):
+			portrait.texture = load(path) as Texture2D
+			portrait.modulate = Color.WHITE
+		else:
+			portrait.modulate = tint
 
 	_flash(tint)
 

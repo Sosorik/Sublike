@@ -22,44 +22,61 @@ mouse_filter = 2
 color = Color(1, 1, 1, 0)
 
 [node name="Panel" type="Control" parent="."]
-offset_left = -460.0
-offset_top = 430.0
-offset_right = -40.0
-offset_bottom = 570.0
+offset_left = -480.0
+offset_top = 96.0
+offset_right = -20.0
+offset_bottom = 616.0
 mouse_filter = 2
 
-[node name="Bg" type="ColorRect" parent="Panel"]
+[node name="Portrait" type="TextureRect" parent="Panel"]
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-color = Color(0.06, 0.07, 0.1, 0.82)
-
-[node name="Portrait" type="TextureRect" parent="Panel"]
-offset_left = 10.0
-offset_top = 10.0
-offset_right = 130.0
-offset_bottom = 130.0
-mouse_filter = 2
 texture = ExtResource("2_icon")
 expand_mode = 1
 stretch_mode = 5
 
-[node name="Name" type="Label" parent="Panel"]
-offset_left = 144.0
-offset_top = 18.0
-offset_right = 410.0
-offset_bottom = 52.0
+[node name="TextBg" type="ColorRect" parent="Panel"]
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -108.0
+grow_horizontal = 2
+grow_vertical = 0
 mouse_filter = 2
+color = Color(0.04, 0.05, 0.08, 0.78)
+
+[node name="Name" type="Label" parent="Panel"]
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 18.0
+offset_top = -100.0
+offset_right = -18.0
+offset_bottom = -60.0
+grow_horizontal = 2
+grow_vertical = 0
+mouse_filter = 2
+theme_override_font_sizes/font_size = 30
 text = "스킬"
 
 [node name="Line" type="Label" parent="Panel"]
-offset_left = 144.0
-offset_top = 58.0
-offset_right = 410.0
-offset_bottom = 128.0
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 18.0
+offset_top = -56.0
+offset_right = -18.0
+offset_bottom = -10.0
+grow_horizontal = 2
+grow_vertical = 0
 mouse_filter = 2
+theme_override_font_sizes/font_size = 21
 text = "대사"
 autowrap_mode = 3

@@ -16,15 +16,19 @@ signal died()
 
 const FALLBACK_MAX_HP: float = 100.0
 
+var display_name: String = "아이다"
 var max_hp: float = FALLBACK_MAX_HP
 var hp: float = FALLBACK_MAX_HP
 
 var _dead: bool = false
+var _profile: Dictionary = {}
 
 
 func _ready() -> void:
 	position = Vector2(BattleLayout.AIDA_X, BattleLayout.AIDA_Y)
-	max_hp = DataLoader.get_rule("aida_max_hp", FALLBACK_MAX_HP)
+	_profile = DataLoader.get_aida()
+	display_name = str(_profile.get("name", display_name))
+	max_hp = float(_profile.get("max_hp", FALLBACK_MAX_HP))
 	hp = max_hp
 	# 자식의 _ready() 가 부모보다 먼저 돈다. 부모가 연결할 틈을 준다.
 	_announce.call_deferred()
@@ -49,6 +53,12 @@ func heal(amount: float) -> void:
 		return
 	hp = minf(max_hp, hp + amount)
 	hp_changed.emit(hp, max_hp)
+
+
+## 스킬 슬롯에 맞는 컷인 상반신 경로. 없으면 빈 문자열.
+func get_cutin_portrait(slot_name: String) -> String:
+	var table: Dictionary = _profile.get("cutin_portrait", {})
+	return str(table.get(slot_name, ""))
 
 
 func is_alive() -> bool:

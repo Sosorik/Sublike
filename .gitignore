@@ -16,3 +16,14 @@ export_presets.cfg
 # 에디터 / 임시
 *.tmp
 *.swp
+
+# 구매/다운로드한 상용 에셋 — 저장소에 올리면 제3자 재배포가 된다.
+# cogabushi 팩 라이선스: "Distribution of the raw or edited data to third parties
+# as an asset is strictly prohibited." 이 저장소는 공개 상태다.
+/assets/sprites/portraits/
+/assets/sprites/units/
+/assets/sprites/cutins/
+/assets/_licensed/
+# 원본 팩 자체 (146MB, 라이선스 에셋)
+/assets/free_fantasy_hero_25_character_pack/
+/assets/*.zip

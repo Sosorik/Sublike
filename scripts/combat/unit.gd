@@ -24,6 +24,12 @@ const FALLBACK_CRIT_MULT: float = 2.0
 const FALLBACK_PROJECTILE_SPEED: float = 600.0
 const FALLBACK_MIN_DAMAGE: float = 1.0
 
+## 전장에 세울 때의 목표 키(픽셀). 레인 간격이 80 이라 이보다 크면 겹친다.
+const SPRITE_HEIGHT: float = 118.0
+
+## 공격 스프라이트를 보여주는 시간.
+const ATTACK_POSE_SEC: float = 0.35
+
 
 ## 라인별 그룹 이름. 적이 자기 레인의 가신을 찾을 때 쓴다.
 static func lane_group(line: String) -> StringName:
@@ -57,6 +63,11 @@ var _projectiles_root: Node2D = null
 
 var _min_damage: float = FALLBACK_MIN_DAMAGE
 var _blockers: Array[Enemy] = []
+
+var _sprite: Sprite2D = null
+var _tex_idle: Texture2D = null
+var _tex_battle: Texture2D = null
+var _pose_left: float = 0.0
 
 ## 아이다 버프. 각 항목 { type, value, remaining }. 지속시간이 끝나면 사라진다.
 var _buffs: Array[Dictionary] = []
@@ -102,15 +113,56 @@ func setup(data: Dictionary) -> void:
 	_crit_mult = DataLoader.get_rule("crit_mult", FALLBACK_CRIT_MULT)
 	_cooldown = 0.0
 
-	# 임시 아트. 최종 스프라이트가 나오면 이 두 줄을 지운다.
-	modulate = Color.from_string(str(data.get("debug_color", "")), FALLBACK_COLOR)
-	scale = Vector2.ONE * float(data.get("debug_scale", 1.0))
+	_apply_art(data)
 
 
 ## Party 가 투사체 발사에 필요한 것을 넣어 준다.
 func set_projectile_source(scene: PackedScene, root: Node2D) -> void:
 	_projectile_scene = scene
 	_projectiles_root = root
+
+
+## 스프라이트가 있으면 그걸 쓰고, 없으면 임시 색 사각형으로 돌아간다.
+## 발끝이 레인 y 에 닿도록 offset 을 내린다 — 슬롯 좌표가 곧 서 있는 바닥이다.
+func _apply_art(data: Dictionary) -> void:
+	_sprite = get_node_or_null("Sprite2D") as Sprite2D
+	_tex_idle = _load_tex(str(data.get("sprite_idle", "")))
+	_tex_battle = _load_tex(str(data.get("sprite_battle", "")))
+
+	if _sprite == null or _tex_idle == null:
+		# 임시 아트. 스프라이트가 없을 때만.
+		modulate = Color.from_string(str(data.get("debug_color", "")), FALLBACK_COLOR)
+		scale = Vector2.ONE * float(data.get("debug_scale", 1.0))
+		return
+
+	modulate = Color.WHITE
+	scale = Vector2.ONE
+	_sprite.texture = _tex_idle
+	var s: float = SPRITE_HEIGHT / float(_tex_idle.get_height())
+	_sprite.scale = Vector2(s, s)
+	_sprite.offset = Vector2(0.0, -float(_tex_idle.get_height()) * 0.5)
+
+
+func _load_tex(path: String) -> Texture2D:
+	if path.is_empty() or not ResourceLoader.exists(path):
+		return null
+	return load(path) as Texture2D
+
+
+## 공격 순간 잠깐 전투 자세로 바꾼다. 프레임 애니메이션이 아니라 두 장 교체다.
+func _show_attack_pose() -> void:
+	if _sprite == null or _tex_battle == null:
+		return
+	_sprite.texture = _tex_battle
+	_pose_left = ATTACK_POSE_SEC
+
+
+func _tick_pose(delta: float) -> void:
+	if _pose_left <= 0.0:
+		return
+	_pose_left -= delta
+	if _pose_left <= 0.0 and _sprite != null and _tex_idle != null:
+		_sprite.texture = _tex_idle
 
 
 ## 라인 슬롯에 세운다. 이후 이 좌표에서 움직이지 않는다.
@@ -235,7 +287,7 @@ func take_damage(packet: DamagePacket) -> void:
 
 
 func _die() -> void:
-	modulate = Color(0.35, 0.35, 0.35, 0.6)   # 임시 표시. 쓰러진 가신
+	modulate = Color(0.35, 0.35, 0.35, 0.6)   # 쓰러진 가신은 어둡게
 
 	# 붙잡고 있던 적들을 놓아 준다. 순회 중 배열이 바뀌므로 복사본을 돈다.
 	var held: Array[Enemy] = _blockers.duplicate()
@@ -256,6 +308,7 @@ func _process(delta: float) -> void:
 		return
 
 	_tick_buffs(delta)
+	_tick_pose(delta)
 
 	if _attack_mode.is_empty():
 		return
@@ -302,6 +355,7 @@ func _attack(target: Enemy) -> void:
 			push_error("Unit: 아직 구현하지 않은 공격 모드 '%s' (%s)" % [_attack_mode, hero_id])
 			return
 
+	_show_attack_pose()
 	attacked.emit(target, packet)
 
 
