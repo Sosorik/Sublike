@@ -9,7 +9,9 @@
 [ext_resource type="Script" path="res://scripts/combat/aida.gd" id="7_aida"]
 [ext_resource type="Script" path="res://scripts/combat/aida_skills.gd" id="8_skills"]
 [ext_resource type="PackedScene" path="res://scenes/ui/battle_hud.tscn" id="9_hud"]
+[ext_resource type="PackedScene" path="res://scenes/ui/cutin_layer.tscn" id="10_cutin"]
 [ext_resource type="Script" path="res://scripts/ui/battle_hud.gd" id="10_oiw7q"]
+[ext_resource type="Script" path="res://scripts/ui/cutin_layer.gd" id="12_mxe8n"]
 
 [node name="Battle" type="Node2D" unique_id=348380701 node_paths=PackedStringArray("spawner", "party", "aida")]
 script = ExtResource("1_battle")
@@ -50,3 +52,13 @@ aida = NodePath("../Aida")
 slots_box = NodePath("Root/Slots")
 auto_cast_box = NodePath("Root/AutoCast")
 hp_bar = NodePath("Root/AidaHP")
+
+[node name="CutinLayer" type="CanvasLayer" parent="." unique_id=945442071 node_paths=PackedStringArray("skills", "panel", "portrait", "name_label", "line_label", "flash") instance=ExtResource("10_cutin")]
+layer = 10
+script = ExtResource("12_mxe8n")
+skills = NodePath("../AidaSkills")
+panel = NodePath("Panel")
+portrait = NodePath("Panel/Portrait")
+name_label = NodePath("Panel/Name")
+line_label = NodePath("Panel/Line")
+flash = NodePath("Flash")
