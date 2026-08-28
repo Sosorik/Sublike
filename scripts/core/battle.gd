@@ -23,6 +23,9 @@ extends Node2D
 ## 인스펙터에서 AidaSkills 를 연결한다. 런 강화가 쿨타임·힐량에 붙는다.
 @export var skills: AidaSkills
 
+## 인스펙터에서 CutinLayer 를 연결한다. 소환 연출이 여기서 나온다.
+@export var cutin: CanvasLayer
+
 ## 층 클리어 후 강화 3택을 내민다. (강화 ID 목록)
 signal upgrades_offered(ids: Array)
 
@@ -55,6 +58,7 @@ func _ready() -> void:
 		push_error("Battle: run_state 가 비어 있다. 인스펙터에서 RunState 를 연결할 것.")
 		return
 	run_state.segment_cleared.connect(_on_segment_cleared)
+	spawner.boss_appeared.connect(_on_boss_appeared)
 	# 자식들이 다 준비된 뒤 첫 층을 연다.
 	_start_floor.call_deferred()
 
@@ -104,6 +108,7 @@ func _on_wave_cleared(wave_number: int) -> void:
 func _start_floor() -> void:
 	run_state.announce()
 	spawner.set_difficulty(run_state.enemy_hp_mult(), run_state.spawn_rate_mult())
+	spawner.set_boss(run_state.boss_enemy_id() if run_state.is_boss_floor() else "")
 	print("─── %d층 (%d/%d) 시작 — 적 체력 ×%.2f, 스폰 ×%.2f%s" % [
 		run_state.current_floor(), run_state.floor_position(), run_state.total_floors(),
 		run_state.enemy_hp_mult(), run_state.spawn_rate_mult(),
@@ -112,11 +117,18 @@ func _start_floor() -> void:
 	spawner.start()
 
 
+func _on_boss_appeared(enemy_id: String) -> void:
+	var row: Dictionary = DataLoader.get_enemy(enemy_id)
+	print("!!! 보스 등장 — %s (hp %.0f) !!!" % [row.get("name", enemy_id), row.get("hp", 0.0)])
+
+
 func _on_floor_cleared() -> void:
 	print("%d층 클리어 — 처치 %d" % [run_state.current_floor(), spawner.get_killed_count()])
 
-	# 마지막 층이었으면 강화를 고를 이유가 없다. 바로 구간 클리어로.
+	# 마지막 층이었으면 강화를 고를 이유가 없다. 보스 격파 연출 후 구간 클리어로.
 	if run_state.floor_position() >= run_state.total_floors():
+		if run_state.is_boss_floor() and _play_summon():
+			return   # 연출이 끝나면 _on_summon_finished 가 이어받는다
 		run_state.advance()
 		return
 
@@ -145,6 +157,31 @@ func choose_upgrade(upgrade_id: String) -> void:
 func _next_floor() -> void:
 	if run_state.advance():
 		_start_floor()
+
+
+## 보스를 격파해 가신을 얻는 연출. 재생을 시작했으면 true.
+func _play_summon() -> bool:
+	var hero_id: String = run_state.boss_hero_id()
+	if cutin == null or hero_id.is_empty():
+		return false
+
+	var hero: Dictionary = DataLoader.get_hero(hero_id)
+	if hero.is_empty():
+		return false
+
+	print("=== 소환 — %s 합류 ===" % hero.get("name", hero_id))
+	if not cutin.summon_finished.is_connected(_on_summon_finished):
+		cutin.summon_finished.connect(_on_summon_finished, CONNECT_ONE_SHOT)
+	cutin.play_summon(
+		str(hero.get("portrait", "")),
+		str(hero.get("name", hero_id)),
+		str(hero.get("cutin_line", ""))
+	)
+	return true
+
+
+func _on_summon_finished() -> void:
+	run_state.advance()
 
 
 ## 누적된 런 강화를 가신·아이다·스킬에 통째로 다시 반영한다.

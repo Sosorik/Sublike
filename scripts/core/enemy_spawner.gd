@@ -17,6 +17,8 @@ signal wave_cleared(wave_number: int)
 signal floor_cleared()
 ## 적이 아이다까지 갔다. 피해 적용은 Battle 이 한다 — 스포너는 아이다를 몰라도 된다.
 signal enemy_reached_aida(enemy: Enemy)
+## 보스가 나타났다.
+signal boss_appeared(enemy_id: String)
 
 enum State { IDLE, SPAWNING, WAITING_CLEAR, INTERMISSION, DONE }
 
@@ -58,6 +60,10 @@ var _state: State = State.IDLE
 var _hp_mult: float = 1.0
 var _rate_mult: float = 1.0
 
+## 보스층이면 마지막 웨이브를 클리어한 뒤 보스가 하나 나온다.
+var _boss_id: String = ""
+var _boss_spawned: bool = false
+
 
 func _ready() -> void:
 	if enemy_scene == null:
@@ -77,6 +83,11 @@ func _ready() -> void:
 		start.call_deferred()
 
 
+## 이 층의 보스를 정한다. 빈 문자열이면 보스가 없는 평범한 층이다. start() 전에 부른다.
+func set_boss(enemy_id: String) -> void:
+	_boss_id = enemy_id
+
+
 ## 층 난이도를 넣는다. start() 전에 부른다.
 ## 적 체력은 배수를 곱하고, 스폰 간격은 배수로 나눈다 (클수록 빨리 나온다).
 func set_difficulty(hp_mult: float, rate_mult: float) -> void:
@@ -93,6 +104,7 @@ func start() -> void:
 	_wave_index = -1
 	_alive = 0
 	_killed = 0
+	_boss_spawned = false
 	_queue.clear()
 	_next_wave()
 
@@ -159,6 +171,10 @@ func _tick_spawning(delta: float) -> void:
 func _next_wave() -> void:
 	_wave_index += 1
 	if _wave_index >= _waves.size():
+		# 일반 웨이브가 끝났다. 보스층이면 여기서 보스가 나온다.
+		if not _boss_id.is_empty() and not _boss_spawned:
+			_spawn_boss()
+			return
 		_state = State.DONE
 		floor_cleared.emit()
 		return
@@ -169,6 +185,15 @@ func _next_wave() -> void:
 	_timer = 0.0
 	_state = State.SPAWNING
 	wave_started.emit(get_wave_number(), _waves.size(), _queue.size())
+
+
+## 보스 하나만 내보내고 처치될 때까지 기다린다.
+func _spawn_boss() -> void:
+	_boss_spawned = true
+	_queue.clear()
+	_spawn_one(_boss_id)
+	_state = State.WAITING_CLEAR
+	boss_appeared.emit(_boss_id)
 
 
 ## entries 를 스폰 순서 목록으로 편다.

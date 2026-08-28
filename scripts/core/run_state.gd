@@ -59,6 +59,11 @@ func boss_hero_id() -> String:
 	return str(_segment.get("boss_hero_id", ""))
 
 
+## 보스층에 나오는 적 ID. data/enemies.json 참조.
+func boss_enemy_id() -> String:
+	return str(_segment.get("boss_enemy_id", ""))
+
+
 ## 적 체력 배수. 구간 계수 × 층당 계수^(층 순번).
 func enemy_hp_mult() -> float:
 	return _curve_value("enemy_hp_mult")

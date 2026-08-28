@@ -9,6 +9,8 @@ extends CanvasLayer
 
 ## 컷인 하나가 끝났다.
 signal cutin_finished(skill_id: String)
+## 소환 연출이 끝났다.
+signal summon_finished()
 
 const SLIDE_IN: float = 0.15
 const HOLD: float = 0.3
@@ -20,6 +22,9 @@ const ON_X: float = 16.0
 
 ## 큐가 이보다 길어지면 오래된 것을 버린다. 밀린 컷인을 다 보여줄 이유가 없다.
 const MAX_QUEUE: int = 2
+
+## 소환 연출은 더 오래 보여준다. 새 가신을 얻는 순간이다.
+const SUMMON_HOLD: float = 2.0
 
 ## 인스펙터에서 AidaSkills 를 연결한다.
 @export var skills: AidaSkills
@@ -63,6 +68,35 @@ func play(skill: Dictionary) -> void:
 
 func is_playing() -> bool:
 	return _playing
+
+
+## 보스를 격파해 가신을 얻었을 때의 연출. 스킬 컷인보다 오래 머문다.
+## 큐를 무시하고 바로 재생한다 — 이건 놓치면 안 되는 장면이다.
+func play_summon(portrait_path: String, unit_name: String, line: String) -> void:
+	_queue.clear()
+	_playing = true
+
+	if name_label != null:
+		name_label.text = "%s 합류" % unit_name
+	if line_label != null:
+		line_label.text = line
+	if portrait != null and not portrait_path.is_empty() and ResourceLoader.exists(portrait_path):
+		portrait.texture = load(portrait_path) as Texture2D
+		portrait.modulate = Color.WHITE
+
+	_flash(Color(1.0, 0.92, 0.6))
+
+	var tween: Tween = create_tween()
+	tween.tween_property(panel, "position:x", ON_X, SLIDE_IN).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	tween.tween_interval(SUMMON_HOLD)
+	tween.tween_property(panel, "position:x", OFF_X, SLIDE_OUT).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
+	tween.finished.connect(_on_summon_finished)
+
+
+func _on_summon_finished() -> void:
+	summon_finished.emit()
+	_playing = false
+	_play_next()
 
 
 ## ---------------------------------------------------------------- 내부
