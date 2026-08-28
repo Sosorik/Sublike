@@ -1,0 +1,11 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/core/battle.gd" id="1_battle"]
+[ext_resource type="PackedScene" path="res://scenes/entities/enemy.tscn" id="2_enemy"]
+
+[node name="Battle" type="Node2D" unique_id=1111616442 node_paths=PackedStringArray("enemies_root")]
+script = ExtResource("1_battle")
+enemy_scene = ExtResource("2_enemy")
+enemies_root = NodePath("Enemies")
+
+[node name="Enemies" type="Node2D" parent="." unique_id=274220953]

@@ -16,18 +16,19 @@
 
 ## 역할 분담 (가장 중요)
 
-- **`.tscn` 씬 파일은 사용자가 Godot 에디터에서 직접 만든다.**
-  Claude는 씬 파일을 텍스트로 생성하거나 편집하지 않는다.
-  노드 ID·리소스 참조가 얽힌 포맷이라 텍스트 편집 시 씬이 깨진다.
-- **Claude는 `.gd` 스크립트와 `.json` 데이터만 작성한다.**
-- 씬 구조가 필요하면 **클릭 단위로 안내한다.** 예:
+- **Claude가 `.tscn` 씬 파일도 직접 만든다.** `.gd` 스크립트, `.json` 데이터와 함께.
+- **씬을 만들거나 고쳤으면 반드시 헤드리스로 검증하고 로그를 보고한다.** 눈으로 안 본 씬은 만든 게 아니다.
   ```
-  1. Scene → New Scene → Node2D 선택
-  2. 이름을 Unit으로 변경
-  3. Unit 우클릭 → Add Child Node → Sprite2D
-  4. Unit 선택 → 스크립트 아이콘 → scripts/combat/unit.gd 연결
-  5. Ctrl+S → scenes/unit.tscn 저장
+  # 임포트 + 스크립트 에러 확인
+  <Godot>_console.exe --headless --path <프로젝트> --import
+  # 실제 실행 (일반 exe는 stdout이 안 잡힌다. 반드시 _console.exe)
+  <Godot>_console.exe --headless --path <프로젝트>
   ```
+- **직렬화 포맷이 헷갈리면 손으로 맞추지 말고 Godot에게 시킨다.**
+  씬을 `instantiate()` → 값 대입 → `PackedScene.pack()` → `ResourceSaver.save()` 하면
+  에디터가 저장한 것과 동일한 정본이 나온다.
+- 씬을 바꿨으면 **어떤 노드를 어떻게 구성했는지 사용자에게 요약해서 알린다.**
+  사용자가 에디터에서 열었을 때 낯설지 않아야 한다.
 - 사용자는 Godot 초보다. 전문 용어를 쓸 때는 짧게 설명을 붙인다.
 
 ---
@@ -94,7 +95,7 @@ signal boss_defeated(hero_id: String)                        # 시그널은 과�
 
 ### 디렉토리
 ```
-scenes/     .tscn (사용자가 생성)
+scenes/     .tscn
 scripts/
   /core     게임 루프, 상태 관리, 오브젝트 풀
   /combat   유닛, 적, 투사체, 데미지
@@ -120,7 +121,6 @@ docs/       설계 문서
 
 ## 하지 말 것
 
-- ❌ `.tscn` 파일 직접 생성/편집
 - ❌ 멀티플레이 / 서버 / 리더보드
 - ❌ 유닛 이동·경로탐색·방향 전환
 - ❌ 액션 조작 (수동 공격, 회피)

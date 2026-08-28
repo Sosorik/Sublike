@@ -19,9 +19,25 @@
 - [완료] 디렉토리 구조 — `scenes/{lobby,battle,entities,ui}`, `scripts/{core,combat,ui,data}`, `assets/{sprites,audio}`
 - [완료] GitHub 연결 및 최초 푸시 — https://github.com/Sosorik/Sublike
 - [완료] GDD v2.0(라인 방어형) 반영 확인 — `validate_data.py` 무결성 통과 (가신 3/40, 고유스킬 3/15, 층 24/100)
-- [대기] `run/main_scene` 미지정 — `Main.tscn` 제작 후 설정 필요
-- [대기] 라인 배치 좌표 규약 확정 — ARCHITECTURE.md의 전/중/후열 x좌표가 "전열이 피해를 먼저 받음"과 반대. 결정 후 수정
-- [대기] 적 진군 차단 규칙 확정 — 전열에 막히는지, 통과하는지
+- [완료] 좌표 규약 확정 — `docs/ARCHITECTURE.md` "좌표 규약" + `scripts/core/battle_layout.gd`
+  전열 x=600(가장 오른쪽) → 중열 450 → 후열 300 → 아이다 80. 전열이 적을 먼저 만나 저지한다
+  레인 y: front 380 / mid 300 / back 220. 스폰 x=1400, 아이다 피해선 x=120
+- [완료] 진군 차단 규칙 확정 — `docs/ARCHITECTURE.md` "진군 차단 규칙"
+  타워디펜스형. 같은 레인 가신과 접촉 시 적 정지 → 서로 공격 → 가신 사망 시 전진 재개
+  가신은 레인과 무관하게 사거리(2D 거리) 안의 적을 공격한다
+- [완료] 1주차 스크립트 작성 — `scripts/core/battle.gd`, `scripts/core/battle_layout.gd`, `scripts/combat/enemy.gd`
+  적 좌측 직진 + 아이다 도달 시그널 + 레인 디버그 드로우. 스페이스바로 추가 스폰
+- [완료] 씬 제작 — `scenes/entities/enemy.tscn` (Area2D + Sprite2D + CollisionShape2D), `scenes/battle/battle.tscn` (Node2D + Enemies)
+- [완료] 역할 분담 변경 — `CLAUDE.md`: 씬(`.tscn`)도 Claude가 직접 만든다. 만들면 헤드리스 검증 필수
+- [완료] `run/main_scene` 설정 — `res://scenes/battle/battle.tscn`
+- [완료] **1주차 목표 달성** — 적 1마리가 오른쪽에서 왼쪽으로 이동 → 아이다 도달 확인
+  `--headless` 실행 로그: `적이 아이다에 도달 — lane=front` (1400→120, 70px/s, 약 18초)
+
+### 알아둘 것
+- `.tscn`에서 노드 참조 export(`@export var x: Node2D`)는 노드 헤더에
+  `node_paths=PackedStringArray("x")`가 있어야 해석된다. `x = NodePath("...")`만 쓰면 null이 된다
+- 헤드리스 검증: `~/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_console.exe`
+  `--headless --path C:/Users/kimcg/Desktop/LilaQuest/Sublike` (일반 exe는 stdout이 안 잡힌다)
 
 - [ ] 공식 튜토리얼 "Your first 2D game" 완주
-- [ ] 1주차: 적 1마리가 오른쪽에서 왼쪽으로 걸어온다
+- [ ] 2주차: JSON 데이터 로더 / 오브젝트 풀 / 웨이브 스포너

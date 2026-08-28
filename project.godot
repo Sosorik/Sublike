@@ -12,6 +12,7 @@ config_version=5
 
 config/name="Sublike"
 config/description="웬델: 마석탑의 수문장 — 뱀서라이크 로그라이트 + 캐릭터 수집"
+run/main_scene="res://scenes/battle/battle.tscn"
 config/features=PackedStringArray("4.7", "Mobile")
 config/icon="res://icon.svg"
 
