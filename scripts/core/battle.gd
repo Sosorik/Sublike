@@ -228,16 +228,4 @@ func _draw() -> void:
 		hit_color,
 		3.0
 	)
-	# 아이다 위치 + 체력바 (임시 표시. 정식 HUD 는 3주차)
-	var aida_pos := Vector2(BattleLayout.AIDA_X, BattleLayout.AIDA_Y)
-	var ratio: float = aida.get_hp_ratio() if aida != null else 1.0
-	var body_color := Color(0.6, 1.0, 0.6, 0.9) if ratio > 0.0 else Color(0.4, 0.4, 0.4, 0.9)
-	draw_circle(aida_pos, 16.0, body_color)
-
-	var bar_size := Vector2(60.0, 8.0)
-	var bar_top := aida_pos + Vector2(-bar_size.x * 0.5, -34.0)
-	draw_rect(Rect2(bar_top, bar_size), Color(0.1, 0.1, 0.1, 0.8))
-	draw_rect(
-		Rect2(bar_top, Vector2(bar_size.x * ratio, bar_size.y)),
-		Color(0.4, 0.9, 0.4, 0.95) if ratio > 0.3 else Color(0.95, 0.35, 0.3, 0.95)
-	)
+	# 아이다는 이제 전신 스프라이트가 서 있다. 체력은 HUD 좌상단에 있다.

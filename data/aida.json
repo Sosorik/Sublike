@@ -3,6 +3,7 @@
   "_schema": {
     "max_hp": "체력. 적이 피해선을 넘으면 깎인다",
     "cutin_portrait": "스킬 슬롯별 컷인 상반신. 표정이 다르다",
+    "sprite": "전장 좌측에 서 있는 전신. 왜소한 체구라 가신보다 작다 (GDD 3.3)",
     "action_cutin": "대형 액션 컷인 (미사용. 보스전 연출 등에 쓸 예정)"
   },
   "aida": [
@@ -10,6 +11,8 @@
       "id": "aida",
       "name": "아이다",
       "max_hp": 100.0,
+      "sprite": "res://assets/sprites/units/aida_idle.png",
+      "sprite_height": 100.0,
       "action_cutin": "res://assets/sprites/cutins/aida.png",
       "cutin_portrait": {
         "buff": "res://assets/sprites/portraits/aida_2.png",

@@ -33,6 +33,8 @@ effects_root = NodePath("Effects")
 [node name="Aida" type="Node2D" parent="."]
 script = ExtResource("7_aida")
 
+[node name="Sprite2D" type="Sprite2D" parent="Aida"]
+
 [node name="RunState" type="Node" parent="."]
 script = ExtResource("11_run")
 

@@ -22,6 +22,7 @@ var hp: float = FALLBACK_MAX_HP
 
 var _dead: bool = false
 var _profile: Dictionary = {}
+var _sprite: Sprite2D = null
 var _base_max_hp: float = FALLBACK_MAX_HP
 
 
@@ -32,6 +33,7 @@ func _ready() -> void:
 	max_hp = float(_profile.get("max_hp", FALLBACK_MAX_HP))
 	_base_max_hp = max_hp
 	hp = max_hp
+	_apply_art()
 	# 자식의 _ready() 가 부모보다 먼저 돈다. 부모가 연결할 틈을 준다.
 	_announce.call_deferred()
 
@@ -66,6 +68,27 @@ func heal(amount: float) -> void:
 		return
 	hp = minf(max_hp, hp + amount)
 	hp_changed.emit(hp, max_hp)
+
+
+## 전장 좌측에 세운다. 아이다는 싸우지 않으므로 대기 자세 한 장뿐이다.
+## 17세, 왜소한 체구 (GDD 3.3) — 가신보다 작게 잡는다.
+func _apply_art() -> void:
+	_sprite = get_node_or_null("Sprite2D") as Sprite2D
+	if _sprite == null:
+		return
+	var path: String = str(_profile.get("sprite", ""))
+	if path.is_empty() or not ResourceLoader.exists(path):
+		return
+
+	var tex: Texture2D = load(path) as Texture2D
+	if tex == null:
+		return
+	_sprite.texture = tex
+	var h: float = float(_profile.get("sprite_height", 100.0))
+	var k: float = h / float(tex.get_height())
+	_sprite.scale = Vector2(k, k)
+	# 발끝이 바닥에 닿게 내린다.
+	_sprite.offset = Vector2(0.0, -float(tex.get_height()) * 0.5)
 
 
 ## 스킬 슬롯에 맞는 컷인 상반신 경로. 없으면 빈 문자열.
