@@ -13,6 +13,17 @@ extends CanvasLayer
 ## 인스펙터에서 Aida 를 연결한다.
 @export var aida: Aida
 
+## 인스펙터에서 Party / DeployField 를 연결한다. 배치 조작이 여기서 나온다.
+@export var party: Node
+@export var deploy_field: DeployField
+
+## 인스펙터에서 DP 표시(Label)와 손패(HBoxContainer)를 연결한다.
+@export var dp_label: Label
+@export var hand_box: HBoxContainer
+
+## 철수 버튼. 배치된 가신을 고르면 나타난다.
+@export var retreat_button: Button
+
 ## 인스펙터에서 RunState / EnemySpawner / Battle 을 연결한다.
 @export var run_state: RunState
 @export var spawner: Node
@@ -65,6 +76,19 @@ func _ready() -> void:
 
 	if result_panel != null:
 		result_panel.visible = false
+
+	if party != null and deploy_field != null:
+		_build_hand()
+		party.dp_changed.connect(_on_dp_changed)
+		party.unit_deployed.connect(_on_unit_deployed)
+		party.unit_retreated.connect(_on_unit_retreated)
+		deploy_field.tile_selected.connect(_on_tile_selected)
+		deploy_field.unit_selected.connect(_on_unit_selected)
+		deploy_field.selection_cleared.connect(_on_selection_cleared)
+		_on_dp_changed(party.get_dp(), party.get_dp_max())
+	if retreat_button != null:
+		retreat_button.visible = false
+		retreat_button.pressed.connect(_on_retreat_pressed)
 	if upgrade_panel != null:
 		upgrade_panel.visible = false
 	if battle != null:
@@ -149,6 +173,129 @@ func _on_auto_cast_changed(enabled: bool) -> void:
 
 func _on_auto_cast_box_toggled(pressed: bool) -> void:
 	skills.set_auto_cast(pressed)
+
+
+## ---------------------------------------------------------------- 배치
+
+var _hand_buttons: Dictionary = {}   ## hero_id → Button
+
+
+## 손패 버튼을 만든다. 이름과 코스트를 보여준다.
+func _build_hand() -> void:
+	if hand_box == null:
+		return
+	for child in hand_box.get_children():
+		child.queue_free()
+	_hand_buttons.clear()
+
+	for hid in party.roster:
+		var data: Dictionary = DataLoader.get_hero(str(hid))
+		if data.is_empty():
+			continue
+		var b := Button.new()
+		b.custom_minimum_size = Vector2(104.0, 62.0)
+		b.focus_mode = Control.FOCUS_NONE
+		b.toggle_mode = true
+		b.pressed.connect(_on_hand_pressed.bind(str(hid)))
+		hand_box.add_child(b)
+		_hand_buttons[str(hid)] = b
+	_refresh_hand()
+
+
+## DP·배치 상황에 따라 버튼 상태를 갱신한다. 못 내는 이유를 툴팁으로 준다.
+func _refresh_hand() -> void:
+	if party == null:
+		return
+	var selected: String = deploy_field.get_selected_hero() if deploy_field != null else ""
+	for hid in _hand_buttons:
+		var b: Button = _hand_buttons[hid]
+		var data: Dictionary = DataLoader.get_hero(str(hid))
+		var cost: int = party.get_cost(str(hid))
+		var deployed: bool = party.is_deployed(str(hid))
+		var kind: String = "지상" if str(data.get("deploy_type")) == BattleLayout.GROUND else "고지"
+
+		b.text = "%s
+%s %d" % [data.get("name", hid), kind, cost]
+		b.button_pressed = (str(hid) == selected)
+		# 배치돼 있거나 DP가 모자라면 못 고른다. 이유는 툴팁에 있다.
+		b.disabled = deployed or float(cost) > party.get_dp()
+		b.tooltip_text = "이미 배치됨" if deployed else (
+			"DP %d 필요" % cost if float(cost) > party.get_dp() else "저지 %d · 사거리 %.0f" % [
+				int(data.get("base_stats", {}).get("block_count", 0)),
+				float(data.get("base_stats", {}).get("range", 0.0)),
+			])
+		b.modulate = Color(1.0, 0.95, 0.6) if str(hid) == selected else Color.WHITE
+
+
+func _on_hand_pressed(hero_id: String) -> void:
+	if deploy_field == null:
+		return
+	# 같은 걸 다시 누르면 선택 해제
+	if deploy_field.get_selected_hero() == hero_id:
+		deploy_field.clear_selection()
+	else:
+		deploy_field.set_selected_hero(hero_id)
+	_hide_retreat()
+	_refresh_hand()
+
+
+func _on_tile_selected(lane: String, column: int) -> void:
+	var hero_id: String = deploy_field.get_selected_hero()
+	if hero_id.is_empty():
+		return
+	var why: String = party.deploy_blocker(hero_id, lane, column)
+	if not why.is_empty():
+		print("배치 불가 — %s" % why)
+		return
+	party.deploy(hero_id, lane, column)
+	deploy_field.clear_selection()
+
+
+func _on_unit_selected(unit: Unit) -> void:
+	if retreat_button == null:
+		return
+	retreat_button.visible = true
+	retreat_button.text = "%s 철수 (+%d DP)" % [unit.display_name, party.get_refund(unit)]
+	_refresh_hand()
+
+
+func _on_selection_cleared() -> void:
+	_hide_retreat()
+	_refresh_hand()
+
+
+func _on_retreat_pressed() -> void:
+	var u: Unit = deploy_field.get_selected_unit()
+	if u != null:
+		party.retreat(u)
+	deploy_field.clear_selection()
+
+
+func _hide_retreat() -> void:
+	if retreat_button != null:
+		retreat_button.visible = false
+
+
+func _on_dp_changed(dp: float, dp_max: float) -> void:
+	if dp_label != null:
+		dp_label.text = "DP %d / %d    배치 %d/%d" % [
+			int(dp), int(dp_max), party.get_deployed_count(), party.get_deploy_limit()
+		]
+	_refresh_hand()
+	if deploy_field != null:
+		deploy_field.queue_redraw()
+
+
+func _on_unit_deployed(unit: Unit, cost: int) -> void:
+	print("배치 — %s %s레인 열%d (DP -%d)" % [unit.display_name, unit.lane, unit.column + 1, cost])
+	_hide_retreat()
+	_refresh_hand()
+
+
+func _on_unit_retreated(hero_id: String, refund: int) -> void:
+	print("철수 — %s (DP +%d)" % [hero_id, refund])
+	_hide_retreat()
+	_refresh_hand()
 
 
 ## ---------------------------------------------------------------- 강화 3택

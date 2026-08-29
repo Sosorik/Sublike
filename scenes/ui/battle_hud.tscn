@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" path="res://scripts/ui/battle_hud.gd" id="1_hud"]
 
-[node name="BattleHUD" type="CanvasLayer" node_paths=PackedStringArray("slots_box", "auto_cast_box", "hp_bar", "status_label", "result_panel", "result_label", "retry_button", "upgrade_panel", "upgrade_box")]
+[node name="BattleHUD" type="CanvasLayer" node_paths=PackedStringArray("slots_box", "auto_cast_box", "hp_bar", "status_label", "result_panel", "result_label", "retry_button", "upgrade_panel", "upgrade_box", "dp_label", "hand_box", "retreat_button")]
 script = ExtResource("1_hud")
 slots_box = NodePath("Root/Slots")
 auto_cast_box = NodePath("Root/AutoCast")
@@ -13,6 +13,9 @@ result_label = NodePath("Root/Result/Text")
 retry_button = NodePath("Root/Result/Retry")
 upgrade_panel = NodePath("Root/Upgrade")
 upgrade_box = NodePath("Root/Upgrade/Choices")
+dp_label = NodePath("Root/DP")
+hand_box = NodePath("Root/Hand")
+retreat_button = NodePath("Root/Retreat")
 
 [node name="Root" type="Control" parent="."]
 process_mode = 3
@@ -40,10 +43,10 @@ anchor_left = 0.5
 anchor_top = 1.0
 anchor_right = 0.5
 anchor_bottom = 1.0
-offset_left = -250.0
-offset_top = -104.0
+offset_left = -230.0
+offset_top = -180.0
 offset_right = 250.0
-offset_bottom = -30.0
+offset_bottom = -106.0
 grow_horizontal = 2
 grow_vertical = 0
 theme_override_constants/separation = 16
@@ -180,3 +183,43 @@ grow_horizontal = 2
 grow_vertical = 2
 theme_override_constants/separation = 16
 alignment = 1
+
+[node name="DP" type="Label" parent="Root"]
+layout_mode = 1
+offset_left = 24.0
+offset_top = 58.0
+offset_right = 360.0
+offset_bottom = 90.0
+mouse_filter = 2
+theme_override_font_sizes/font_size = 22
+text = "DP 10 / 99"
+
+[node name="Hand" type="HBoxContainer" parent="Root"]
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -460.0
+offset_top = -92.0
+offset_right = 460.0
+offset_bottom = -18.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_constants/separation = 8
+alignment = 1
+
+[node name="Retreat" type="Button" parent="Root"]
+visible = false
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -280.0
+offset_top = 24.0
+offset_right = -24.0
+offset_bottom = 68.0
+grow_horizontal = 0
+theme_override_font_sizes/font_size = 20
+text = "철수"

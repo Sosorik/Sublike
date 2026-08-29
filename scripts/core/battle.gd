@@ -32,11 +32,8 @@ extends Node2D
 ## 층 클리어 후 강화 3택을 내민다. (강화 ID 목록)
 signal upgrades_offered(ids: Array)
 
-## 배치 타일과 레인을 그린다. 정식 타일 아트가 나오면 DeployField 로 옮긴다.
+## 아이다 피해선을 그린다. 완성 전 끈다.
 @export var debug_draw: bool = true
-
-## 타일 하나의 크기. 배치 입력 판정에도 같은 값을 쓴다.
-const TILE_SIZE: Vector2 = Vector2(132.0, 104.0)
 
 
 func _ready() -> void:
@@ -205,32 +202,12 @@ func _on_segment_cleared() -> void:
 	spawner.stop()
 
 
-## 레인 안내선. 좌표가 문서와 맞는지 눈으로 확인하기 위한 임시 표시.
+## 아이다 피해선만 그린다. 배치 격자는 DeployField 가 그린다.
 func _draw() -> void:
 	if not debug_draw:
 		return
 
-	var lane_color := Color(1.0, 1.0, 1.0, 0.10)
-	var ground_color := Color(0.45, 0.75, 1.0, 0.22)
-	var high_color := Color(1.0, 0.82, 0.45, 0.22)
-	var edge_color := Color(1.0, 1.0, 1.0, 0.28)
 	var hit_color := Color(1.0, 0.3, 0.3, 0.5)
-
-	# 레인 안내선
-	for lane in BattleLayout.LANES:
-		var y: float = BattleLayout.lane_y(lane)
-		draw_line(Vector2(0.0, y), Vector2(1280.0, y), lane_color, 2.0)
-
-	# 배치 타일 9칸. 지상은 파랑, 고지는 금색.
-	var half := Vector2(TILE_SIZE.x * 0.5, TILE_SIZE.y * 0.5)
-	for li in BattleLayout.lane_count():
-		for ci in BattleLayout.column_count():
-			var center: Vector2 = BattleLayout.tile_position(li, ci)
-			var rect := Rect2(center - half, TILE_SIZE)
-			var is_ground: bool = BattleLayout.column_kind(ci) == BattleLayout.GROUND
-			draw_rect(rect, ground_color if is_ground else high_color)
-			draw_rect(rect, edge_color, false, 2.0)
-
 	# 아이다 피해선
 	draw_line(
 		Vector2(BattleLayout.AIDA_HIT_X, 0.0),
