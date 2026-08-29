@@ -3,6 +3,8 @@
 [ext_resource type="Script" path="res://scripts/combat/enemy.gd" id="1_enemy"]
 [ext_resource type="Texture2D" uid="uid://sybfbloil8mo" path="res://icon.svg" id="2_icon"]
 
+[ext_resource type="Script" path="res://scripts/ui/health_bar.gd" id="3_bar"]
+
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_enemy"]
 size = Vector2(60, 60)
 
@@ -17,3 +19,8 @@ texture = ExtResource("2_icon")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 shape = SubResource("RectangleShape2D_enemy")
+
+[node name="HealthBar" type="Node2D" parent="."]
+script = ExtResource("3_bar")
+hide_when_full = true
+ally = false

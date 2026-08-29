@@ -72,6 +72,7 @@ var _min_damage: float = FALLBACK_MIN_DAMAGE
 var _blockers: Array[Enemy] = []
 
 var _sprite: Sprite2D = null
+var _bar: HealthBar = null
 var _tex_idle: Texture2D = null
 var _tex_battle: Texture2D = null
 var _pose_left: float = 0.0
@@ -134,6 +135,7 @@ func set_projectile_source(scene: PackedScene, root: Node2D) -> void:
 ## 발끝이 레인 y 에 닿도록 offset 을 내린다 — 슬롯 좌표가 곧 서 있는 바닥이다.
 func _apply_art(data: Dictionary) -> void:
 	_sprite = get_node_or_null("Sprite2D") as Sprite2D
+	_bar = get_node_or_null("HealthBar") as HealthBar
 	_tex_idle = _load_tex(str(data.get("sprite_idle", "")))
 	_tex_battle = _load_tex(str(data.get("sprite_battle", "")))
 
@@ -141,6 +143,7 @@ func _apply_art(data: Dictionary) -> void:
 		# 임시 아트. 스프라이트가 없을 때만.
 		modulate = Color.from_string(str(data.get("debug_color", "")), FALLBACK_COLOR)
 		scale = Vector2.ONE * float(data.get("debug_scale", 1.0))
+		_setup_bar(48.0, 60.0)
 		return
 
 	modulate = Color.WHITE
@@ -149,12 +152,26 @@ func _apply_art(data: Dictionary) -> void:
 	var s: float = SPRITE_HEIGHT / float(_tex_idle.get_height())
 	_sprite.scale = Vector2(s, s)
 	_sprite.offset = Vector2(0.0, -float(_tex_idle.get_height()) * 0.5)
+	_setup_bar(float(_tex_idle.get_width()) * s, SPRITE_HEIGHT)
 
 
 func _load_tex(path: String) -> Texture2D:
 	if path.is_empty() or not ResourceLoader.exists(path):
 		return null
 	return load(path) as Texture2D
+
+
+## 체력바를 스프라이트 폭에 맞추고 머리 위로 올린다.
+func _setup_bar(sprite_width: float, sprite_height: float) -> void:
+	if _bar == null:
+		return
+	_bar.setup(clampf(sprite_width * 0.9, 34.0, 120.0), -(sprite_height + 12.0))
+	_refresh_bar()
+
+
+func _refresh_bar() -> void:
+	if _bar != null and max_hp > 0.0:
+		_bar.set_ratio(hp / max_hp)
 
 
 ## 공격 순간 잠깐 전투 자세로 바꾼다. 프레임 애니메이션이 아니라 두 장 교체다.
@@ -235,6 +252,7 @@ func set_run_modifiers(atk_mult: float, aspd_mult: float, range_mult: float, hp_
 			hp = minf(max_hp, hp + gained)
 		else:
 			hp = minf(hp, max_hp)
+		_refresh_bar()
 
 
 func get_element() -> String:
@@ -305,6 +323,7 @@ func take_damage(packet: DamagePacket) -> void:
 
 	var dealt: float = maxf(_min_damage, packet.base - defense)
 	hp -= dealt
+	_refresh_bar()
 
 	if not packet.silent_number:
 		var at: Vector2 = position + Vector2(0.0, -SPRITE_HEIGHT * 0.55)
@@ -319,6 +338,8 @@ func take_damage(packet: DamagePacket) -> void:
 
 func _die() -> void:
 	modulate = Color(0.35, 0.35, 0.35, 0.6)   # 쓰러진 가신은 어둡게
+	if _bar != null:
+		_bar.visible = false
 
 	# 붙잡고 있던 적들을 놓아 준다. 순회 중 배열이 바뀌므로 복사본을 돈다.
 	var held: Array[Enemy] = _blockers.duplicate()

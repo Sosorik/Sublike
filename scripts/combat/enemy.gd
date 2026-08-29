@@ -56,6 +56,7 @@ var _dot_tick: float = FALLBACK_DOT_TICK
 var _base_color: Color = FALLBACK_COLOR
 
 var _sprite: Sprite2D = null
+var _bar: HealthBar = null
 var _tex_idle: Texture2D = null
 var _tex_battle: Texture2D = null
 var _pose_left: float = 0.0
@@ -96,6 +97,7 @@ func spawn_at(lane: String) -> void:
 	_lane = lane
 	position = BattleLayout.spawn_position(lane)
 	hp = max_hp
+	_refresh_bar()
 	_advancing = true
 	_blocked_by = null
 	_attack_timer = 0.0
@@ -109,6 +111,8 @@ func take_damage(packet: DamagePacket) -> void:
 
 	var dealt: float = packet.base if packet.ignore_defense else maxf(_min_damage, packet.base - defense)
 	hp -= dealt
+
+	_refresh_bar()
 
 	if not packet.element.is_empty():
 		_apply_element(packet)
@@ -161,6 +165,9 @@ func _physics_process(delta: float) -> void:
 ## 발끝이 레인 y 에 닿도록 offset 을 내린다.
 func _apply_art(data: Dictionary) -> void:
 	_sprite = get_node_or_null("Sprite2D") as Sprite2D
+	_bar = get_node_or_null("HealthBar") as HealthBar
+	if _bar != null:
+		_bar.visible = true
 	_tex_idle = _load_tex(str(data.get("sprite_idle", "")))
 	_tex_battle = _load_tex(str(data.get("sprite_battle", "")))
 	_pose_left = 0.0
@@ -169,6 +176,7 @@ func _apply_art(data: Dictionary) -> void:
 		_base_color = Color.from_string(str(data.get("debug_color", "")), FALLBACK_COLOR)
 		modulate = _base_color
 		scale = Vector2.ONE * float(data.get("debug_scale", 1.0))
+		_setup_bar(48.0, 60.0)
 		return
 
 	# 스프라이트를 쓰면 기본색은 흰색이다. 불에 타면 여기서 주황으로 물든다.
@@ -180,12 +188,26 @@ func _apply_art(data: Dictionary) -> void:
 	var k: float = h / float(_tex_idle.get_height())
 	_sprite.scale = Vector2(k, k)
 	_sprite.offset = Vector2(0.0, -float(_tex_idle.get_height()) * 0.5)
+	_setup_bar(float(_tex_idle.get_width()) * k, h)
 
 
 func _load_tex(path: String) -> Texture2D:
 	if path.is_empty() or not ResourceLoader.exists(path):
 		return null
 	return load(path) as Texture2D
+
+
+## 체력바를 스프라이트 폭에 맞추고 머리 위로 올린다.
+func _setup_bar(sprite_width: float, sprite_height: float) -> void:
+	if _bar == null:
+		return
+	_bar.setup(clampf(sprite_width * 0.9, 30.0, 140.0), -(sprite_height + 10.0))
+	_refresh_bar()
+
+
+func _refresh_bar() -> void:
+	if _bar != null and max_hp > 0.0:
+		_bar.set_ratio(hp / max_hp)
 
 
 func _show_attack_pose() -> void:
