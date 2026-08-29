@@ -20,6 +20,7 @@ config/icon="res://icon.svg"
 
 DataLoader="*res://scripts/data/data_loader.gd"
 ObjectPool="*res://scripts/core/object_pool.gd"
+Effects="*res://scripts/core/effects.gd"
 
 [display]
 

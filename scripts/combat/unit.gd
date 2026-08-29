@@ -306,8 +306,14 @@ func take_damage(packet: DamagePacket) -> void:
 	var dealt: float = maxf(_min_damage, packet.base - defense)
 	hp -= dealt
 
+	if not packet.silent_number:
+		var at: Vector2 = position + Vector2(0.0, -SPRITE_HEIGHT * 0.55)
+		Effects.damage(at, dealt, Effects.COLOR_ALLY_HIT, false)
+		Effects.hit(at, Effects.COLOR_ALLY_HIT)
+
 	if hp <= 0.0:
 		hp = 0.0
+		Effects.kill(position + Vector2(0.0, -SPRITE_HEIGHT * 0.55), Effects.COLOR_ALLY_HIT)
 		_die()
 
 

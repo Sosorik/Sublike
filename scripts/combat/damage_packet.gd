@@ -19,6 +19,9 @@ var source_hero_id: String = ""
 ## element 가 비어 있으면 의미 없다. 맞는 쪽이 읽어서 처리한다.
 var element_params: Dictionary = {}
 
+## 피해 숫자를 띄우지 않는다. 지속피해가 0.25초마다 숫자를 뿌리면 화면이 가려진다.
+var silent_number: bool = false
+
 ## 방어력을 무시한다. 지속피해와 신성 속성이 쓴다.
 ## 지속피해에 방어력을 빼면 틱마다 최소피해로 떨어져 오히려 더 아파진다.
 var ignore_defense: bool = false

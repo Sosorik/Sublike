@@ -26,6 +26,9 @@ extends Node2D
 ## 인스펙터에서 CutinLayer 를 연결한다. 소환 연출이 여기서 나온다.
 @export var cutin: CanvasLayer
 
+## 인스펙터에서 Effects 노드를 연결한다. 피해 숫자·파티클이 여기 담긴다.
+@export var effects_root: Node2D
+
 ## 층 클리어 후 강화 3택을 내민다. (강화 ID 목록)
 signal upgrades_offered(ids: Array)
 
@@ -59,6 +62,9 @@ func _ready() -> void:
 		return
 	run_state.segment_cleared.connect(_on_segment_cleared)
 	spawner.boss_appeared.connect(_on_boss_appeared)
+
+	if effects_root != null:
+		Effects.set_root(effects_root)
 	# 자식들이 다 준비된 뒤 첫 층을 연다.
 	_start_floor.call_deferred()
 

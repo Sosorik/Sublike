@@ -113,9 +113,15 @@ func take_damage(packet: DamagePacket) -> void:
 	if not packet.element.is_empty():
 		_apply_element(packet)
 
+	if not packet.silent_number:
+		var hit_at: Vector2 = position + Vector2(0.0, -_hit_offset_y())
+		Effects.damage(hit_at, dealt, Effects.COLOR_ENEMY_HIT, packet.is_crit)
+		Effects.hit(hit_at, _element_color(packet))
+
 	if hp <= 0.0:
 		hp = 0.0
 		_advancing = false
+		Effects.kill(position + Vector2(0.0, -_hit_offset_y()), _dot_color if not _dots.is_empty() else Effects.COLOR_ENEMY_HIT)
 		_leave_blocker()
 		# 투사체 명중은 물리 콜백 안이다. 거기서 풀에 반납하면 트리에서 못 뗀다.
 		died.emit.call_deferred(self)
@@ -253,6 +259,7 @@ func _tick_dots(delta: float) -> void:
 
 	var packet := DamagePacket.new(dps_sum * _dot_tick, false, "")
 	packet.ignore_defense = true
+	packet.silent_number = true   # 0.25초마다 숫자가 뜨면 화면이 가려진다
 	take_damage(packet)
 
 
@@ -265,6 +272,21 @@ func _update_burn_tint() -> void:
 	var pulse: float = 0.85 + 0.15 * sin(float(Time.get_ticks_msec()) * 0.012)
 	modulate = _base_color.lerp(_dot_color, weight) * pulse
 	modulate.a = 1.0
+
+
+## 피격 이펙트가 뜰 높이. 발끝이 아니라 몸통 가운데쯤에서 터져야 자연스럽다.
+func _hit_offset_y() -> float:
+	if _sprite != null and _sprite.texture != null:
+		return _sprite.texture.get_height() * _sprite.scale.y * 0.55
+	return 30.0
+
+
+## 맞은 속성의 색. 무속성이면 기본색.
+func _element_color(packet: DamagePacket) -> Color:
+	var hex: String = str(packet.element_params.get("vfx_color", ""))
+	if packet.element.is_empty() or hex.is_empty():
+		return Effects.COLOR_ENEMY_HIT
+	return Color.from_string(hex, Effects.COLOR_ENEMY_HIT)
 
 
 ## 지금 불타는 중인가. 연출·디버그용.

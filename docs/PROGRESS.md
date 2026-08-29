@@ -170,6 +170,16 @@ Phase 1 검증 질문 3번(속성이 눈에 띄는가) / 4번(컷인이 매력�
 
 한 판이 처음부터 끝까지 돈다. 1층 → 강화 3택 → … → 6층 보스 → 소환 → 구간 클리어.
 실패하면 결과판에서 리트라이.
+## 전투 연출 (아트 리소스 없이 임팩트 올리기)
+
+- [완료] 피해 숫자 + 피격/처치 파티클 — `scripts/core/effects.gd` (autoload `Effects`)
+  `scenes/effects/damage_number.tscn`, `hit_effect.tscn` — 둘 다 풀 필수 대상
+  ARCHITECTURE 의 오브젝트 풀 목록에 있던 DamageNumber / HitEffect 를 이제 채웠다
+  치명타는 숫자가 커지고 금색. 아군 피격은 붉은색. 속성이 실린 타격은 속성색으로 터진다
+  처치는 더 크게 터진다 (파티클 22개, 속도 1.9배)
+  **지속피해는 숫자를 띄우지 않는다** (`silent_number`) — 0.25초마다 뜨면 화면이 가려진다
+  Effects 는 전투 씬이 `set_root()` 로 컨테이너를 넘겨 줘야 동작한다. 안 넘기면 조용히 무시
+  검증: 30초 전투에서 동시 최대 7개, 풀 신규 생성 0 (prewarm 32/24 안에서 해결), 누수 없음
 
 ### 알아둘 것
 - `.tscn`에서 노드 참조 export(`@export var x: Node2D`)는 노드 헤더에
