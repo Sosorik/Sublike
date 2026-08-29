@@ -43,8 +43,9 @@ script = ExtResource("7_aida")
 [node name="RunState" type="Node" parent="."]
 script = ExtResource("11_run")
 
-[node name="Party" type="Node" parent="." node_paths=PackedStringArray("units_root", "projectiles_root")]
+[node name="Party" type="Node" parent="." node_paths=PackedStringArray("run_state", "units_root", "projectiles_root")]
 script = ExtResource("4_party")
+run_state = NodePath("../RunState")
 unit_scene = ExtResource("5_unit")
 units_root = NodePath("../Units")
 projectile_scene = ExtResource("6_projectile")

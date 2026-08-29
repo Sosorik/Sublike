@@ -18,6 +18,9 @@ var _segment: Dictionary = {}
 var _floors: Array[int] = []
 var _index: int = 0
 
+## 이번 층의 배치 지형. 레인당 1줄. floors.json 의 layouts.
+var _layout: Array = []
+
 ## 이번 판에 고른 강화. { upgrade_id: 스택 수 }
 var _upgrades: Dictionary = {}
 
@@ -31,6 +34,36 @@ func _ready() -> void:
 	_floors.clear()
 	for f in (_segment.get("floors", []) as Array):
 		_floors.append(int(f))   # JSON 숫자는 float 으로 온다
+	load_layout()
+
+
+## 이번 층의 지형을 읽어 둔다. 층이 바뀔 때마다 부른다.
+func load_layout() -> void:
+	_layout = DataLoader.get_floor_layout(current_floor())
+
+
+func get_layout() -> Array:
+	return _layout
+
+
+## 그 타일의 종류. "ground" | "high" | "none"(막힘)
+func tile_kind(lane_index: int, column_index: int) -> String:
+	return BattleLayout.kind_from_layout(_layout, lane_index, column_index)
+
+
+## 그 타일에 이 배치 종류를 놓을 수 있는가.
+func can_place(deploy_type: String, lane_index: int, column_index: int) -> bool:
+	return tile_kind(lane_index, column_index) == deploy_type
+
+
+## 배치 가능한 타일 수. 지형이 좁은 층인지 판단할 때 쓴다.
+func open_tile_count() -> int:
+	var n: int = 0
+	for li in BattleLayout.lane_count():
+		for ci in BattleLayout.column_count():
+			if tile_kind(li, ci) != BattleLayout.BLOCKED:
+				n += 1
+	return n
 
 
 ## 현재 층 번호 (탑 기준 절대값).
@@ -80,6 +113,7 @@ func advance() -> bool:
 		segment_cleared.emit()
 		return false
 	_index += 1
+	load_layout()
 	_emit_floor()
 	return true
 
@@ -88,6 +122,7 @@ func advance() -> bool:
 func reset() -> void:
 	_index = 0
 	_upgrades.clear()
+	load_layout()
 	_emit_floor()
 
 

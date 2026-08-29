@@ -156,6 +156,18 @@ func get_wave_pattern() -> Dictionary:
 	return (pattern as Dictionary).duplicate(true)
 
 
+## 층별 배치 지형. 없으면 default. floors.json 의 layouts 참조.
+func get_floor_layout(floor_number: int) -> Array:
+	var doc: Dictionary = _raw.get(GROUP_SEGMENTS, {})
+	var table: Variant = doc.get("layouts")
+	if typeof(table) != TYPE_DICTIONARY:
+		return []
+	var t: Dictionary = table
+	var key: String = str(floor_number)
+	var rows: Variant = t.get(key, t.get("default", []))
+	return (rows as Array).duplicate() if typeof(rows) == TYPE_ARRAY else []
+
+
 ## 구간 안에서 층이 오를 때마다 곱해지는 난이도 계수. floors.json 참조.
 func get_per_floor_curve() -> Dictionary:
 	var doc: Dictionary = _raw.get(GROUP_SEGMENTS, {})

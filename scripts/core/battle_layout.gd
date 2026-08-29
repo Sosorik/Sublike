@@ -22,8 +22,15 @@ const AIDA_HIT_X: float = 120.0
 ## 열 x좌표. 인덱스 0 = 열1 = 가장 오른쪽 = 적을 먼저 만난다.
 const COLUMN_X: Array[float] = [680.0, 520.0, 360.0]
 
-## 열별 타일 종류. 앞 2열은 지상(근접), 뒤 1열은 고지(원거리).
-const COLUMN_KIND: Array[String] = ["ground", "ground", "high"]
+## 막힌 타일. 배치할 수 없다.
+const BLOCKED: String = "none"
+
+## 지형 문자 → 타일 종류. floors.json 의 layouts 가 이 글자를 쓴다.
+const KIND_OF_CHAR: Dictionary = {
+	"G": "ground",
+	"H": "high",
+	".": "none",
+}
 
 ## 레인 y좌표. 간격 112 — 유닛 스프라이트(약 100)보다 커야 세로로 겹치지 않는다.
 const LANE_Y: Array[float] = [236.0, 348.0, 460.0]
@@ -51,14 +58,15 @@ static func tile_position(lane_index: int, column_index: int) -> Vector2:
 	return Vector2(COLUMN_X[column_index], LANE_Y[lane_index])
 
 
-## 그 열에 배치할 수 있는 종류. "ground" 또는 "high".
-static func column_kind(column_index: int) -> String:
-	return COLUMN_KIND[column_index]
-
-
-## 배치 종류가 그 열에 맞는가.
-static func can_place(deploy_type: String, column_index: int) -> bool:
-	return column_kind(column_index) == deploy_type
+## 지형 문자열 배열(레인당 1줄)에서 타일 종류를 읽는다.
+## 범위를 벗어나거나 모르는 글자는 막힌 것으로 본다.
+static func kind_from_layout(layout: Array, lane_index: int, column_index: int) -> String:
+	if lane_index < 0 or lane_index >= layout.size():
+		return BLOCKED
+	var row: String = str(layout[lane_index])
+	if column_index < 0 or column_index >= row.length():
+		return BLOCKED
+	return str(KIND_OF_CHAR.get(row[column_index], BLOCKED))
 
 
 ## 레인 이름 → 인덱스. 없으면 -1.

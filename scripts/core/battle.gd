@@ -74,6 +74,14 @@ func _ready() -> void:
 func _on_enemy_reached_aida(enemy: Enemy) -> void:
 	if not aida.is_alive():
 		return
+
+	# 보스가 아이다까지 갔다는 건 막지 못했다는 뜻이다. 그 판은 거기서 끝난다.
+	# 이게 없으면 보스를 잡지 않고 지나보내도 층이 클리어된다.
+	if enemy.is_boss:
+		print("!!! %s 가 아이다에 도달 — 방어선 붕괴 !!!" % enemy.display_name)
+		aida.take_damage(DamagePacket.new(aida.hp, false, ""))
+		return
+
 	# 피해 로그가 먼저 나와야 읽힌다. take_damage 는 hp_changed 를 즉시 쏜다.
 	print("돌파 — %s 아이다 피해 %.0f" % [enemy.display_name, enemy.damage])
 	aida.take_damage(DamagePacket.new(enemy.damage, false, ""))
@@ -109,11 +117,14 @@ func _on_wave_cleared(wave_number: int) -> void:
 ## 이번 층의 난이도를 스포너에 넣고 웨이브를 시작한다.
 func _start_floor() -> void:
 	run_state.announce()
+	# 명일방주의 스테이지 단위와 같다 — 층마다 배치를 걷고 DP 를 처음부터.
+	party.reset_for_floor()
 	spawner.set_difficulty(run_state.enemy_hp_mult(), run_state.spawn_rate_mult())
 	spawner.set_boss(run_state.boss_enemy_id() if run_state.is_boss_floor() else "")
-	print("─── %d층 (%d/%d) 시작 — 적 체력 ×%.2f, 스폰 ×%.2f%s" % [
+	print("─── %d층 (%d/%d) 시작 — 적 체력 ×%.2f, 스폰 ×%.2f | 지형 %s (배치 %d칸)%s" % [
 		run_state.current_floor(), run_state.floor_position(), run_state.total_floors(),
 		run_state.enemy_hp_mult(), run_state.spawn_rate_mult(),
+		" ".join(run_state.get_layout()), run_state.open_tile_count(),
 		"  [보스층]" if run_state.is_boss_floor() else ""
 	])
 	spawner.start()

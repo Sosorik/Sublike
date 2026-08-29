@@ -20,6 +20,9 @@ signal unit_retreated(hero_id: String, refund: int)
 ## 선봉이 처치로 DP를 벌었다. 연출·로그용.
 signal dp_earned(unit: Unit, amount: float)
 
+## 인스펙터에서 RunState 를 연결한다. 층 지형을 여기서 읽는다.
+@export var run_state: RunState
+
 ## 인스펙터에서 scenes/entities/unit.tscn 을 연결한다.
 @export var unit_scene: PackedScene
 
@@ -152,16 +155,21 @@ func deploy_blocker(hero_id: String, lane: String, column: int) -> String:
 		return "이미 배치돼 있다"
 	if _units.size() >= _deploy_limit:
 		return "동시 배치 상한(%d)" % _deploy_limit
-	if BattleLayout.lane_index_of(lane) < 0 or column < 0 or column >= BattleLayout.column_count():
+	var lane_index: int = BattleLayout.lane_index_of(lane)
+	if lane_index < 0 or column < 0 or column >= BattleLayout.column_count():
 		return "없는 타일"
 	if get_unit_at(lane, column) != null:
 		return "타일이 찼다"
+
+	var kind: String = tile_kind(lane_index, column)
+	if kind == BattleLayout.BLOCKED:
+		return "막힌 타일"
 
 	var data: Dictionary = DataLoader.get_hero(hero_id)
 	if data.is_empty():
 		return "가신 데이터 없음"
 	var deploy_type: String = str(data.get("deploy_type", "ground"))
-	if not BattleLayout.can_place(deploy_type, column):
+	if kind != deploy_type:
 		return "%s 가신은 %s 타일에만" % [
 			"근접" if deploy_type == BattleLayout.GROUND else "원거리",
 			"지상" if deploy_type == BattleLayout.GROUND else "고지",
@@ -169,6 +177,13 @@ func deploy_blocker(hero_id: String, lane: String, column: int) -> String:
 	if _dp < float(get_cost(hero_id)):
 		return "DP 부족 (%d 필요)" % get_cost(hero_id)
 	return ""
+
+
+## 그 타일의 종류. 층 지형을 따른다. RunState 가 없으면 기본 지형.
+func tile_kind(lane_index: int, column: int) -> String:
+	if run_state != null:
+		return run_state.tile_kind(lane_index, column)
+	return BattleLayout.kind_from_layout(["GGH", "GGH", "GGH"], lane_index, column)
 
 
 ## ---------------------------------------------------------------- 배치 / 철수
@@ -236,6 +251,22 @@ func on_enemy_killed(killer_hero_id: String) -> void:
 		dp_changed.emit(_dp, _dp_max)
 		dp_earned.emit(u, gain)
 		return
+
+
+## 층이 시작될 때 판을 비운다. **명일방주의 스테이지 단위와 같다.**
+## 배치를 전부 걷고 DP 를 시작값으로 되돌린다. 재배치 코스트도 초기화한다.
+## 이게 있어야 층마다 "누구를 어디에" 를 다시 판단하게 된다.
+func reset_for_floor() -> void:
+	for u in _units.duplicate():
+		if is_instance_valid(u):
+			u.undeploy()
+			u.queue_free()
+	_units.clear()
+	_by_tile.clear()
+	_deploy_count.clear()
+
+	_dp = DataLoader.get_rule("dp_start", FALLBACK_DP_START)
+	dp_changed.emit(_dp, _dp_max)
 
 
 ## ---------------------------------------------------------------- 전투 지원

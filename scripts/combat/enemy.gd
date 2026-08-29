@@ -38,6 +38,9 @@ var defense: float = 0.0
 var shard_value: int = 0
 var attack_interval: float = FALLBACK_ATTACK_INTERVAL
 
+## 보스인가. 보스가 아이다에 닿으면 그 판은 즉시 실패다.
+var is_boss: bool = false
+
 var _lane: String = "front"
 var _lane_pref: String = "any"
 var _advancing: bool = false
@@ -82,6 +85,7 @@ func setup(data: Dictionary) -> void:
 	defense = float(data.get("defense", 0.0))
 	shard_value = int(data.get("shard_value", 0))
 	attack_interval = float(data.get("attack_interval", FALLBACK_ATTACK_INTERVAL))
+	is_boss = bool(data.get("is_boss", false))
 	_lane_pref = str(data.get("lane_pref", "any"))
 	_min_damage = DataLoader.get_rule("min_damage", FALLBACK_MIN_DAMAGE)
 	_contact_x = DataLoader.get_rule("block_contact_x", FALLBACK_CONTACT_X)

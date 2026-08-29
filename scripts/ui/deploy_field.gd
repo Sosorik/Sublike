@@ -23,6 +23,7 @@ const EDGE: Color = Color(1.0, 1.0, 1.0, 0.22)
 const OK_FILL: Color = Color(0.45, 0.95, 0.55, 0.30)
 const OK_EDGE: Color = Color(0.6, 1.0, 0.7, 0.95)
 const NO_FILL: Color = Color(0.1, 0.1, 0.12, 0.45)
+const BLOCKED_FILL: Color = Color(0.02, 0.02, 0.03, 0.55)
 const PICK_EDGE: Color = Color(1.0, 0.85, 0.35, 0.95)
 
 ## 인스펙터에서 Party 를 연결한다.
@@ -117,7 +118,14 @@ func _draw() -> void:
 		for ci in BattleLayout.column_count():
 			var lane: String = BattleLayout.LANES[li]
 			var rect := Rect2(BattleLayout.tile_position(li, ci) - half, TILE_SIZE)
-			var is_ground: bool = BattleLayout.column_kind(ci) == BattleLayout.GROUND
+			var kind: String = party.tile_kind(li, ci) if party != null else BattleLayout.GROUND
+
+			# 막힌 타일은 아예 안 그린다. 층마다 지형이 다르다.
+			if kind == BattleLayout.BLOCKED:
+				draw_rect(rect, BLOCKED_FILL)
+				continue
+
+			var is_ground: bool = kind == BattleLayout.GROUND
 
 			if picking:
 				# 놓을 수 있는 칸만 밝게. 나머지는 덮어서 눈에서 지운다.
