@@ -17,6 +17,8 @@ signal dp_changed(dp: float, dp_max: float)
 signal unit_deployed(unit: Unit, cost: int)
 ## 철수했다.
 signal unit_retreated(hero_id: String, refund: int)
+## 선봉이 처치로 DP를 벌었다. 연출·로그용.
+signal dp_earned(unit: Unit, amount: float)
 
 ## 인스펙터에서 scenes/entities/unit.tscn 을 연결한다.
 @export var unit_scene: PackedScene
@@ -34,7 +36,7 @@ signal unit_retreated(hero_id: String, refund: int)
 @export var projectile_prewarm: int = 48
 
 ## 손패. 이 판에 쓸 수 있는 가신 ID. Phase 1 은 8명 고정.
-@export var roster: Array[String] = ["lien", "sera", "mira", "yuna", "elis", "nina", "rina", "vela"]
+@export var roster: Array[String] = ["lien", "karin", "sera", "yuna", "elis", "nina", "rina", "vela"]
 
 const FALLBACK_DP_START: float = 10.0
 const FALLBACK_DP_REGEN: float = 1.0
@@ -116,8 +118,13 @@ func get_cost(hero_id: String) -> int:
 	return mini(_cost_cap, int(floor(float(base) * mult)))
 
 
-## 철수하면 돌려받는 DP. 현재 코스트의 절반, 내림. (명일방주 동일)
+## 철수하면 돌려받는 DP.
+## 보통은 현재 코스트의 절반(내림).
+## **선봉(Charger)은 예외로 원가를 전액 돌려받는다.** 명일방주 동일 —
+## 이게 있어야 "싸게 깔고 벌다가 빼서 딜러로 교체" 가 성립한다.
 func get_refund(unit: Unit) -> int:
+	if unit.refunds_full_cost():
+		return int(DataLoader.get_hero(unit.hero_id).get("deploy_cost", 0))
 	return int(floor(float(unit.deploy_cost) * _refund_ratio))
 
 
@@ -213,6 +220,22 @@ func retreat(unit: Unit) -> int:
 	dp_changed.emit(_dp, _dp_max)
 	unit_retreated.emit(hero_id, refund)
 	return refund
+
+
+## 적이 처치됐을 때 불린다. 잡은 가신이 선봉이면 DP를 준다.
+func on_enemy_killed(killer_hero_id: String) -> void:
+	if killer_hero_id.is_empty():
+		return
+	for u in _units:
+		if not is_instance_valid(u) or u.hero_id != killer_hero_id:
+			continue
+		var gain: float = u.get_dp_on_kill()
+		if gain <= 0.0:
+			return
+		_dp = minf(_dp_max, _dp + gain)
+		dp_changed.emit(_dp, _dp_max)
+		dp_earned.emit(u, gain)
+		return
 
 
 ## ---------------------------------------------------------------- 전투 지원

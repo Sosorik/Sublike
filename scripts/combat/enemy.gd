@@ -44,6 +44,10 @@ var _advancing: bool = false
 var _min_damage: float = FALLBACK_MIN_DAMAGE
 var _contact_x: float = FALLBACK_CONTACT_X
 
+## 마지막으로 때린 가신. 처치 보상(선봉의 DP)을 누구에게 줄지 정한다.
+## 지속피해로 죽으면 그 속성을 걸어 준 가신이 아니라 마지막 직접 타격자가 가져간다.
+var _killer_id: String = ""
+
 ## 나를 붙잡고 있는 가신. null 이면 전진 중이다.
 var _blocked_by: Unit = null
 var _attack_timer: float = 0.0
@@ -97,6 +101,7 @@ func spawn_at(lane: String) -> void:
 	_lane = lane
 	position = BattleLayout.spawn_position(lane)
 	hp = max_hp
+	_killer_id = ""
 	_refresh_bar()
 	_advancing = true
 	_blocked_by = null
@@ -113,6 +118,9 @@ func take_damage(packet: DamagePacket) -> void:
 	hp -= dealt
 
 	_refresh_bar()
+
+	if not packet.source_hero_id.is_empty():
+		_killer_id = packet.source_hero_id
 
 	if not packet.element.is_empty():
 		_apply_element(packet)
@@ -309,6 +317,11 @@ func _element_color(packet: DamagePacket) -> Color:
 	if packet.element.is_empty() or hex.is_empty():
 		return Effects.COLOR_ENEMY_HIT
 	return Color.from_string(hex, Effects.COLOR_ENEMY_HIT)
+
+
+## 마지막으로 때린 가신 ID. 아무도 안 때렸으면 빈 문자열.
+func get_killer_id() -> String:
+	return _killer_id
 
 
 ## 지금 불타는 중인가. 연출·디버그용.

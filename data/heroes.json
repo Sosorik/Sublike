@@ -8,7 +8,8 @@
     "skill_id": "hero_skills.json 참조",
     "base_stats.block_count": "동시 저지 수. 0이면 근접 적이 지나친다(고지)",
     "grants_skill": "해금 시 아이다에게 전수하는 스킬 ID",
-    "_art_id": "에셋 팩 내 캐릭터 번호. 재추출용 기록"
+    "_art_id": "에셋 팩 내 캐릭터 번호. 재추출용 기록",
+    "traits": "특성. dp_on_kill=처치 시 얻는 DP, refund_full_cost=철수 시 원가 전액 환급(명일방주 Charger)"
   },
   "heroes": [
     {
@@ -43,6 +44,42 @@
       "_art_id": 124
     },
     {
+      "id": "karin",
+      "name": "카린",
+      "floor": 20,
+      "deploy_type": "ground",
+      "deploy_cost": 7,
+      "attack_type_id": "melee",
+      "skill_id": "focus_fire",
+      "base_stats": {
+        "hp": 130.0,
+        "atk": 15.0,
+        "atk_speed": 1.1,
+        "range": 95.0,
+        "crit": 0.08,
+        "defense": 4.0,
+        "block_count": 1
+      },
+      "growth": {
+        "hp": 16.0,
+        "atk": 2.7
+      },
+      "grants_skill": "buff_haste",
+      "cutin_line": "길은 내가 연다.",
+      "tier": 1,
+      "traits": {
+        "dp_on_kill": 1.0,
+        "refund_full_cost": true
+      },
+      "_role_note": "선봉(명일방주 Charger). 싸게 깔아 DP를 벌고, 나중에 철수해 딜러로 교체한다.",
+      "portrait": "res://assets/sprites/portraits/karin.png",
+      "sprite_idle": "res://assets/sprites/units/karin_idle.png",
+      "sprite_battle": "res://assets/sprites/units/karin_battle.png",
+      "debug_color": "#e0904a",
+      "debug_scale": 1.0,
+      "_art_id": 116
+    },
+    {
       "id": "sera",
       "name": "세라",
       "floor": 12,
@@ -72,37 +109,6 @@
       "debug_color": "#4aa8d8",
       "debug_scale": 1.0,
       "_art_id": 114
-    },
-    {
-      "id": "mira",
-      "name": "미라",
-      "floor": 20,
-      "deploy_type": "ground",
-      "deploy_cost": 13,
-      "attack_type_id": "melee",
-      "skill_id": "focus_fire",
-      "base_stats": {
-        "hp": 180.0,
-        "atk": 16.0,
-        "atk_speed": 1.0,
-        "range": 100.0,
-        "crit": 0.08,
-        "defense": 6.0,
-        "block_count": 2
-      },
-      "growth": {
-        "hp": 23.4,
-        "atk": 2.9
-      },
-      "grants_skill": "buff_haste",
-      "cutin_line": "정면으로 와.",
-      "tier": 1,
-      "portrait": "res://assets/sprites/portraits/mira.png",
-      "sprite_idle": "res://assets/sprites/units/mira_idle.png",
-      "sprite_battle": "res://assets/sprites/units/mira_battle.png",
-      "debug_color": "#d8a04a",
-      "debug_scale": 1.0,
-      "_art_id": 106
     },
     {
       "id": "yuna",

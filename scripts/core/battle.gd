@@ -61,6 +61,7 @@ func _ready() -> void:
 		return
 	run_state.segment_cleared.connect(_on_segment_cleared)
 	spawner.boss_appeared.connect(_on_boss_appeared)
+	spawner.enemy_killed.connect(_on_enemy_killed)
 
 	if effects_root != null:
 		Effects.set_root(effects_root)
@@ -116,6 +117,11 @@ func _start_floor() -> void:
 		"  [보스층]" if run_state.is_boss_floor() else ""
 	])
 	spawner.start()
+
+
+## 처치 보상을 파티로 넘긴다. 선봉이 잡았으면 DP가 들어온다.
+func _on_enemy_killed(_enemy: Enemy, killer_hero_id: String) -> void:
+	party.on_enemy_killed(killer_hero_id)
 
 
 func _on_boss_appeared(enemy_id: String) -> void:

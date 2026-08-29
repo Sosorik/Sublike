@@ -61,6 +61,11 @@ var defense: float = 0.0
 ## 동시에 저지할 수 있는 적 수. 0이면 저지하지 않는다 (원거리 가신).
 var block_count: int = 0
 
+## 특성. heroes.json 의 traits 블록이 그대로 온다.
+##   dp_on_kill        처치할 때마다 얻는 DP (명일방주 Charger)
+##   refund_full_cost  철수 시 현재 코스트의 절반이 아니라 **원가 전액** 환급 (Charger)
+var traits: Dictionary = {}
+
 ## 런 내 강화의 누적 계수. 아이다 버프와 달리 판이 끝날 때까지 유지된다.
 var run_atk_mult: float = 1.0
 var run_atk_speed_mult: float = 1.0
@@ -119,6 +124,7 @@ func setup(data: Dictionary) -> void:
 	crit = float(stats.get("crit", 0.0))
 	defense = float(stats.get("defense", 0.0))
 	block_count = int(stats.get("block_count", 0))
+	traits = data.get("traits", {})
 	_buffs.clear()
 	_element = ""
 	_element_left = 0.0
@@ -382,6 +388,16 @@ func _release_all_blockers() -> void:
 
 func is_alive() -> bool:
 	return hp > 0.0
+
+
+## 처치 시 벌어들이는 DP. 선봉이 아니면 0.
+func get_dp_on_kill() -> float:
+	return float(traits.get("dp_on_kill", 0.0))
+
+
+## 철수 시 원가를 전부 돌려받는가. 명일방주 Charger 특성.
+func refunds_full_cost() -> bool:
+	return bool(traits.get("refund_full_cost", false))
 
 
 func _process(delta: float) -> void:

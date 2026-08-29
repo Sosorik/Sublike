@@ -19,6 +19,8 @@ signal floor_cleared()
 signal enemy_reached_aida(enemy: Enemy)
 ## 보스가 나타났다.
 signal boss_appeared(enemy_id: String)
+## 적이 처치됐다. 누가 잡았는지 함께 보낸다 — 선봉의 DP 보상에 쓴다.
+signal enemy_killed(enemy: Enemy, killer_hero_id: String)
 
 enum State { IDLE, SPAWNING, WAITING_CLEAR, INTERMISSION, DONE }
 
@@ -270,6 +272,7 @@ func _on_enemy_reached_aida(enemy: Enemy) -> void:
 func _on_enemy_died(enemy: Enemy) -> void:
 	_killed += 1
 	_alive = maxi(0, _alive - 1)
+	enemy_killed.emit(enemy, enemy.get_killer_id())
 	if verbose:
 		print("  처치 %s (남은 alive=%d)" % [enemy.enemy_id, _alive])
 	ObjectPool.release(enemy)
