@@ -32,8 +32,11 @@ extends Node2D
 ## 층 클리어 후 강화 3택을 내민다. (강화 ID 목록)
 signal upgrades_offered(ids: Array)
 
-## 레인 안내선을 그린다. 좌표 확인용 임시 표시. 완성 전 끈다.
+## 배치 타일과 레인을 그린다. 정식 타일 아트가 나오면 DeployField 로 옮긴다.
 @export var debug_draw: bool = true
+
+## 타일 하나의 크기. 배치 입력 판정에도 같은 값을 쓴다.
+const TILE_SIZE: Vector2 = Vector2(132.0, 104.0)
 
 
 func _ready() -> void:
@@ -48,7 +51,6 @@ func _ready() -> void:
 	if party == null:
 		push_error("Battle: party 가 비어 있다. 인스펙터에서 Party 를 연결할 것.")
 		return
-	party.party_placed.connect(_on_party_placed)
 
 	if aida == null:
 		push_error("Battle: aida 가 비어 있다. 인스펙터에서 Aida 를 연결할 것.")
@@ -67,10 +69,6 @@ func _ready() -> void:
 		Effects.set_root(effects_root)
 	# 자식들이 다 준비된 뒤 첫 층을 연다.
 	_start_floor.call_deferred()
-
-
-func _on_party_placed(units: Array) -> void:
-	print("편성 완료 — 가신 %d명" % units.size())
 
 
 ## 적이 아이다까지 갔다. 적의 damage 로 피해 묶음을 만들어 넘긴다.
@@ -212,14 +210,26 @@ func _draw() -> void:
 	if not debug_draw:
 		return
 
-	var lane_color := Color(1.0, 1.0, 1.0, 0.12)
-	var slot_color := Color(0.4, 0.8, 1.0, 0.9)
+	var lane_color := Color(1.0, 1.0, 1.0, 0.10)
+	var ground_color := Color(0.45, 0.75, 1.0, 0.22)
+	var high_color := Color(1.0, 0.82, 0.45, 0.22)
+	var edge_color := Color(1.0, 1.0, 1.0, 0.28)
 	var hit_color := Color(1.0, 0.3, 0.3, 0.5)
 
-	for line in BattleLayout.LINES:
-		var y: float = BattleLayout.lane_y(line)
+	# 레인 안내선
+	for lane in BattleLayout.LANES:
+		var y: float = BattleLayout.lane_y(lane)
 		draw_line(Vector2(0.0, y), Vector2(1280.0, y), lane_color, 2.0)
-		draw_circle(BattleLayout.slot_position(line), 12.0, slot_color)
+
+	# 배치 타일 9칸. 지상은 파랑, 고지는 금색.
+	var half := Vector2(TILE_SIZE.x * 0.5, TILE_SIZE.y * 0.5)
+	for li in BattleLayout.lane_count():
+		for ci in BattleLayout.column_count():
+			var center: Vector2 = BattleLayout.tile_position(li, ci)
+			var rect := Rect2(center - half, TILE_SIZE)
+			var is_ground: bool = BattleLayout.column_kind(ci) == BattleLayout.GROUND
+			draw_rect(rect, ground_color if is_ground else high_color)
+			draw_rect(rect, edge_color, false, 2.0)
 
 	# 아이다 피해선
 	draw_line(
@@ -228,4 +238,4 @@ func _draw() -> void:
 		hit_color,
 		3.0
 	)
-	# 아이다는 이제 전신 스프라이트가 서 있다. 체력은 HUD 좌상단에 있다.
+	# 아이다는 전신 스프라이트가 서 있다. 체력은 HUD 좌상단에 있다.

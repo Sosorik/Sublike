@@ -321,16 +321,20 @@ func get_dot_stacks() -> int:
 ## 같은 레인의 가신에게 막히는지 본다.
 ## 저지 수가 찬 가신은 나를 받지 않는다 — 그냥 지나간다. (명일방주의 저지 수)
 func _try_get_blocked() -> void:
+	# 같은 레인에서 **가장 오른쪽** 가신부터 만난다. 열1이 먼저, 뚫리면 열2가 받는다.
+	var best: Unit = null
 	for node in get_tree().get_nodes_in_group(Unit.lane_group(_lane)):
 		var unit: Unit = node as Unit
 		if unit == null or not unit.is_alive():
 			continue
 		if position.x > unit.position.x + _contact_x:
 			continue   # 아직 안 닿았다
-		if unit.try_block(self):
-			_blocked_by = unit
-			_attack_timer = attack_interval
-			return
+		if best == null or unit.position.x > best.position.x:
+			best = unit
+
+	if best != null and best.try_block(self):
+		_blocked_by = best
+		_attack_timer = attack_interval
 
 
 func _tick_blocked(delta: float) -> void:

@@ -29,7 +29,8 @@ if not errors:
     askill_ids = {s["id"] for s in askills["skills"]}
     hero_list  = [h for h in heroes["heroes"] if not h["id"].startswith("_")]
     hero_ids   = {h["id"] for h in hero_list}
-    valid_lines = {"front", "mid", "back"}
+    valid_types = {"ground", "high"}
+    valid_lanes = {"a", "b", "c"}
 
     for h in hero_list:
         if h["attack_type_id"] not in atype_ids:
@@ -39,8 +40,15 @@ if not errors:
         gs = h.get("grants_skill")
         if gs and gs not in askill_ids:
             errors.append(f"[heroes] '{h['id']}' 없는 아이다 스킬 전수: {gs}")
-        if h["line"] not in valid_lines:
-            errors.append(f"[heroes] '{h['id']}' 잘못된 라인: {h['line']}")
+        if h["deploy_type"] not in valid_types:
+            errors.append(f"[heroes] '{h['id']}' 잘못된 배치 종류: {h['deploy_type']}")
+        if h.get("deploy_cost", 0) <= 0:
+            errors.append(f"[heroes] '{h['id']}' 배치 코스트가 0 이하")
+        block = h["base_stats"].get("block_count", 0)
+        if h["deploy_type"] == "high" and block != 0:
+            errors.append(f"[heroes] '{h['id']}' 고지 배치인데 저지 수가 {block} (0이어야 한다)")
+        if h["deploy_type"] == "ground" and block <= 0:
+            errors.append(f"[heroes] '{h['id']}' 지상 배치인데 저지 수가 0")
         if not h.get("cutin_line"):
             warnings.append(f"[heroes] '{h['id']}' 컷인 대사 없음")
 
@@ -76,13 +84,20 @@ if not errors:
             errors.append(f"[aida_skills] 슬롯 '{slot}' 비어 있음")
 
     lanes = enemies["wave_pattern"]["lanes_y"]
-    for ln in valid_lines:
+    for ln in valid_lanes:
         if ln not in lanes: errors.append(f"[enemies] lanes_y에 '{ln}' 없음")
+    for e in enemies["enemies"]:
+        lp = e.get("lane_pref", "any")
+        if lp != "any" and lp not in valid_lanes:
+            errors.append(f"[enemies] '{e['id']}' 잘못된 lane_pref: {lp}")
 
-    # 라인 커버리지
-    for ln in valid_lines:
-        if not any(h["line"] == ln for h in hero_list):
-            warnings.append(f"라인 '{ln}' 담당 가신 없음")
+    # 배치 종류 커버리지 — 지상/고지 둘 다 있어야 9칸을 쓸 수 있다
+    for dt in valid_types:
+        n = sum(1 for h in hero_list if h["deploy_type"] == dt)
+        if n == 0:
+            errors.append(f"배치 종류 '{dt}' 가신 없음")
+        else:
+            warnings.append(f"{dt} 가신 {n}명")
 
     if len(hero_list) < 40:      warnings.append(f"가신 {len(hero_list)}/40 명")
     if len(hskills["hero_skills"]) < 15: warnings.append(f"고유스킬 {len(hskills['hero_skills'])}/15 종")

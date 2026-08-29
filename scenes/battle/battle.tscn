@@ -26,7 +26,7 @@ effects_root = NodePath("Effects")
 
 [node name="Projectiles" type="Node2D" parent="."]
 
-[node name="Lanes" type="Node2D" parent="."]
+[node name="Units" type="Node2D" parent="."]
 
 [node name="Effects" type="Node2D" parent="."]
 
@@ -41,7 +41,7 @@ script = ExtResource("11_run")
 [node name="Party" type="Node" parent="." node_paths=PackedStringArray("units_root", "projectiles_root")]
 script = ExtResource("4_party")
 unit_scene = ExtResource("5_unit")
-units_root = NodePath("../Lanes")
+units_root = NodePath("../Units")
 projectile_scene = ExtResource("6_projectile")
 projectiles_root = NodePath("../Projectiles")
 

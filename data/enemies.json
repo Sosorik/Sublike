@@ -6,15 +6,15 @@
   "enemies": [
     { "id": "charger", "name": "돌격체", "hp": 60.0,  "speed": 70.0, "damage": 10.0, "defense": 0.0, "lane_pref": "any",   "ai": "advance_left", "shard_value": 1, "attack_interval": 1.0, "sprite_idle": "res://assets/sprites/units/enemy_charger_idle.png", "sprite_battle": "res://assets/sprites/units/enemy_charger_battle.png", "sprite_height": 112, "debug_color": "#e0563c", "debug_scale": 1.0 },
     { "id": "shooter", "name": "사격체", "hp": 40.0,  "speed": 40.0, "damage": 8.0,  "defense": 0.0, "lane_pref": "any",   "ai": "advance_and_shoot", "attack": { "range": 300.0, "interval": 2.0, "projectile_speed": 250.0 }, "shard_value": 2, "attack_interval": 1.5, "sprite_idle": "res://assets/sprites/units/enemy_shooter_idle.png", "sprite_battle": "res://assets/sprites/units/enemy_shooter_battle.png", "sprite_height": 108, "debug_color": "#d8c14a", "debug_scale": 0.85 },
-    { "id": "boss_warden", "name": "탑의 파수관", "hp": 900.0, "speed": 22.0, "damage": 40.0, "defense": 18.0, "lane_pref": "front", "ai": "advance_left", "attack_interval": 1.8, "shard_value": 40, "sprite_idle": "res://assets/sprites/units/enemy_boss_warden_idle.png", "sprite_battle": "res://assets/sprites/units/enemy_boss_warden_battle.png", "sprite_height": 200, "debug_color": "#c8a24a", "debug_scale": 2.0, "is_boss": true },
-    { "id": "armored", "name": "중갑체", "hp": 260.0, "speed": 30.0, "damage": 22.0, "defense": 12.0,"lane_pref": "front", "ai": "advance_left", "shard_value": 5, "attack_interval": 2.0, "sprite_idle": "res://assets/sprites/units/enemy_armored_idle.png", "sprite_battle": "res://assets/sprites/units/enemy_armored_battle.png", "sprite_height": 142, "debug_color": "#6d8296", "debug_scale": 1.5 }
+    { "id": "boss_warden", "name": "탑의 파수관", "hp": 900.0, "speed": 22.0, "damage": 40.0, "defense": 18.0, "lane_pref": "any", "ai": "advance_left", "attack_interval": 1.8, "shard_value": 40, "sprite_idle": "res://assets/sprites/units/enemy_boss_warden_idle.png", "sprite_battle": "res://assets/sprites/units/enemy_boss_warden_battle.png", "sprite_height": 200, "debug_color": "#c8a24a", "debug_scale": 2.0, "is_boss": true },
+    { "id": "armored", "name": "중갑체", "hp": 260.0, "speed": 30.0, "damage": 22.0, "defense": 12.0,"lane_pref": "any", "ai": "advance_left", "shard_value": 5, "attack_interval": 2.0, "sprite_idle": "res://assets/sprites/units/enemy_armored_idle.png", "sprite_battle": "res://assets/sprites/units/enemy_armored_battle.png", "sprite_height": 142, "debug_color": "#6d8296", "debug_scale": 1.5 }
   ],
   "wave_pattern": {
     "_comment": "층당 웨이브 5. 웨이브 사이 정비 시간 3초",
     "waves_per_floor": 5,
     "intermission_sec": 3.0,
     "spawn_x": 1400.0,
-    "lanes_y": { "front": 380, "mid": 300, "back": 220 },
+    "lanes_y": { "a": 236, "b": 348, "c": 460 },
     "max_alive": 100,
     "_waves_note": "임시 수치. 밸런스는 5~6주차에 잡는다. 여기 숫자만 고치면 된다.",
     "waves": [

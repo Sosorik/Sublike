@@ -120,14 +120,14 @@ func get_upgrades() -> Dictionary:
 
 
 ## 런 강화의 누적 배수. 같은 강화를 n번 고르면 값이 n제곱으로 곱해진다.
-## line 을 주면 그 라인 전용 강화만 센다 (line_hp_mult 등).
-func upgrade_mult(effect_type: String, line: String = "") -> float:
+## deploy_type 을 주면 그 배치 종류 전용 강화만 센다 (line_hp_mult 등).
+func upgrade_mult(effect_type: String, deploy_type: String = "") -> float:
 	var out: float = 1.0
 	for id in _upgrades:
 		var e: Dictionary = DataLoader.get_upgrade(id).get("effect", {})
 		if str(e.get("type", "")) != effect_type:
 			continue
-		if not line.is_empty() and str(e.get("line", "")) != line:
+		if not deploy_type.is_empty() and str(e.get("deploy_type", "")) != deploy_type:
 			continue
 		out *= pow(float(e.get("value", 1.0)), float(_upgrades[id]))
 	return out

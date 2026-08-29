@@ -24,20 +24,29 @@ const FALLBACK_CRIT_MULT: float = 2.0
 const FALLBACK_PROJECTILE_SPEED: float = 600.0
 const FALLBACK_MIN_DAMAGE: float = 1.0
 
-## 전장에 세울 때의 목표 키(픽셀). 레인 간격이 80 이라 이보다 크면 겹친다.
-const SPRITE_HEIGHT: float = 118.0
+## 전장에 세울 때의 목표 키(픽셀). 레인 간격 112 보다 작아야 세로로 겹치지 않는다.
+const SPRITE_HEIGHT: float = 100.0
 
 ## 공격 스프라이트를 보여주는 시간.
 const ATTACK_POSE_SEC: float = 0.35
 
 
-## 라인별 그룹 이름. 적이 자기 레인의 가신을 찾을 때 쓴다.
-static func lane_group(line: String) -> StringName:
-	return StringName("unit_" + line)
+## 레인별 그룹 이름. 적이 자기 레인의 가신을 찾을 때 쓴다.
+static func lane_group(lane: String) -> StringName:
+	return StringName("unit_lane_" + lane)
 
 var hero_id: String = ""
 var display_name: String = ""
-var line: String = "front"
+
+## ground(지상·근접) | high(고지·원거리)
+var deploy_type: String = "ground"
+
+## 배치에 든 DP. 재배치 코스트 계산과 철수 환급에 쓴다.
+var deploy_cost: int = 0
+
+## 배치된 타일. lane 은 "a"/"b"/"c", column 은 0~2.
+var lane: String = ""
+var column: int = -1
 var attack_type_id: String = ""
 var skill_id: String = ""
 
@@ -95,7 +104,8 @@ func setup(data: Dictionary) -> void:
 
 	hero_id = str(data.get("id", ""))
 	display_name = str(data.get("name", hero_id))
-	line = str(data.get("line", "front"))
+	deploy_type = str(data.get("deploy_type", "ground"))
+	deploy_cost = int(data.get("deploy_cost", 0))
 	attack_type_id = str(data.get("attack_type_id", ""))
 	skill_id = str(data.get("skill_id", ""))
 
@@ -190,14 +200,23 @@ func _tick_pose(delta: float) -> void:
 		_sprite.texture = _tex_idle
 
 
-## 라인 슬롯에 세운다. 이후 이 좌표에서 움직이지 않는다.
-func place_at(slot_line: String) -> void:
-	line = slot_line
-	position = BattleLayout.slot_position(slot_line)
-	# 같은 레인의 적이 찾을 수 있도록 라인 그룹에 들어간다.
-	var g: StringName = lane_group(line)
+## 타일에 세운다. 이후 이 좌표에서 움직이지 않는다.
+func place_at(tile_lane: String, tile_column: int) -> void:
+	lane = tile_lane
+	column = tile_column
+	position = BattleLayout.tile_position(BattleLayout.lane_index_of(lane), column)
+	# 같은 레인의 적이 찾을 수 있도록 레인 그룹에 들어간다.
+	var g: StringName = lane_group(lane)
 	if not is_in_group(g):
 		add_to_group(g)
+
+
+## 철수. 그룹에서 빠지고 저지하던 적을 놓아 준다.
+func undeploy() -> void:
+	var g: StringName = lane_group(lane)
+	if is_in_group(g):
+		remove_from_group(g)
+	_release_all_blockers()
 
 
 ## ---------------------------------------------------------------- 버프 / 속성
@@ -336,19 +355,29 @@ func take_damage(packet: DamagePacket) -> void:
 		_die()
 
 
+## 회복. 최대치를 넘지 않는다.
+func heal(amount: float) -> void:
+	if not is_alive() or amount <= 0.0:
+		return
+	hp = minf(max_hp, hp + amount)
+	_refresh_bar()
+
+
 func _die() -> void:
 	modulate = Color(0.35, 0.35, 0.35, 0.6)   # 쓰러진 가신은 어둡게
 	if _bar != null:
 		_bar.visible = false
+	_release_all_blockers()
+	died.emit(self)
 
-	# 붙잡고 있던 적들을 놓아 준다. 순회 중 배열이 바뀌므로 복사본을 돈다.
+
+## 붙잡고 있던 적들을 놓아 준다. 순회 중 배열이 바뀌므로 복사본을 돈다.
+func _release_all_blockers() -> void:
 	var held: Array[Enemy] = _blockers.duplicate()
 	_blockers.clear()
 	for e in held:
 		if is_instance_valid(e):
 			e.on_blocker_lost()
-
-	died.emit(self)
 
 
 func is_alive() -> bool:

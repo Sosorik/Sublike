@@ -250,12 +250,12 @@ func _spawn_one(enemy_id: String) -> void:
 ## 지정 레인 적은 순환 카운터를 소비하지 않는다.
 func _pick_lane(lane_pref: String) -> String:
 	if lane_pref != "any":
-		if lane_pref in BattleLayout.LINES:
+		if lane_pref in BattleLayout.LANES:
 			return lane_pref
 		push_warning("EnemySpawner: 알 수 없는 lane_pref '%s'" % lane_pref)
 
-	var lane: String = BattleLayout.LINES[_lane_index]
-	_lane_index = (_lane_index + 1) % BattleLayout.LINES.size()
+	var lane: String = BattleLayout.LANES[_lane_index]
+	_lane_index = (_lane_index + 1) % BattleLayout.LANES.size()
 	return lane
 
 

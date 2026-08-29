@@ -4,6 +4,14 @@
     { "id": "crit_mult",  "value": 2.0, "note": "치명타 배수" },
     { "id": "min_damage", "value": 1.0, "note": "방어력을 빼고도 최소한 이만큼은 들어간다" },
     { "id": "block_contact_x", "value": 40.0, "note": "적이 가신의 x 에서 이만큼 앞까지 오면 저지 접촉" },
-    { "id": "dot_tick", "value": 0.25, "note": "지속피해를 몇 초마다 적용하는가. 매 프레임 하면 피해 묶음이 낭비된다" }
+    { "id": "dot_tick", "value": 0.25, "note": "지속피해를 몇 초마다 적용하는가. 매 프레임 하면 피해 묶음이 낭비된다" },
+    { "id": "dp_start",         "value": 10.0, "note": "전투 시작 DP" },
+    { "id": "dp_regen",         "value": 1.0,  "note": "초당 DP 회복. 명일방주 동일" },
+    { "id": "dp_max",           "value": 99.0, "note": "DP 상한" },
+    { "id": "redeploy_mult_1",  "value": 1.5,  "note": "1회 재배치 코스트 배수. 명일방주 동일" },
+    { "id": "redeploy_mult_n",  "value": 2.0,  "note": "2회차부터의 재배치 코스트 배수. 명일방주 동일" },
+    { "id": "cost_cap",         "value": 99.0, "note": "코스트 상한. 명일방주 동일" },
+    { "id": "retreat_refund",   "value": 0.5,  "note": "철수 시 현재 코스트의 이 비율을 돌려받는다(내림). 명일방주 동일" },
+    { "id": "deploy_limit",     "value": 6.0,  "note": "동시 배치 인원. 타일 9칸보다 적어야 선택이 된다" }
   ]
 }

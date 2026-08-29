@@ -156,7 +156,12 @@ func _apply(skill: Dictionary) -> void:
 			for u in party.get_alive_units():
 				u.apply_element(element, elem_dur, params)
 		"heal_flat":
-			aida.heal(value * _run_heal_mult)
+			# GDD 4.4 — 힐 대상은 아이다 본인 + 체력 비율이 가장 낮은 지상 가신.
+			var amount: float = value * _run_heal_mult
+			aida.heal(amount)
+			var hurt: Unit = party.get_weakest_ground_unit()
+			if hurt != null:
+				hurt.heal(amount)
 		_:
 			push_error("AidaSkills: 아직 구현하지 않은 효과 '%s' (%s)" % [type, skill.get("id", "")])
 
