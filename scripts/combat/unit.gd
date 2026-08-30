@@ -30,9 +30,6 @@ const FALLBACK_MIN_DAMAGE: float = 1.0
 ## 전장에 세울 때의 목표 키(픽셀). 레인 간격 112 보다 작아야 세로로 겹치지 않는다.
 const SPRITE_HEIGHT: float = 100.0
 
-## 공격 스프라이트를 보여주는 시간.
-const ATTACK_POSE_SEC: float = 0.35
-
 
 ## 레인별 그룹 이름. 적이 자기 레인의 가신을 찾을 때 쓴다.
 static func lane_group(lane: String) -> StringName:
@@ -91,11 +88,8 @@ var _blockers: Array[Enemy] = []
 ## 고유 스킬. scripts/combat/unit_skill.gd
 var _skill: UnitSkill = UnitSkill.new()
 
-var _sprite: Sprite2D = null
-var _bar: HealthBar = null
-var _tex_idle: Texture2D = null
-var _tex_battle: Texture2D = null
-var _pose_left: float = 0.0
+## 겉모습(스프라이트 교체·체력바). scripts/combat/unit_visual.gd
+var _visual: UnitVisual = UnitVisual.new()
 
 ## 버프와 부여 속성. 순수 계산이라 따로 뺐다. scripts/combat/stat_mods.gd
 var _mods: StatMods = StatMods.new()
@@ -138,7 +132,8 @@ func setup(data: Dictionary) -> void:
 	_crit_mult = DataLoader.get_rule("crit_mult", FALLBACK_CRIT_MULT)
 	_cooldown = 0.0
 
-	_apply_art(data)
+	_visual.setup(self, data, SPRITE_HEIGHT)
+	_refresh_bar()
 
 
 ## Party 가 투사체 발사에 필요한 것을 넣어 준다.
@@ -147,63 +142,10 @@ func set_projectile_source(scene: PackedScene, root: Node2D) -> void:
 	_projectiles_root = root
 
 
-## 스프라이트가 있으면 그걸 쓰고, 없으면 임시 색 사각형으로 돌아간다.
-## 발끝이 레인 y 에 닿도록 offset 을 내린다 — 슬롯 좌표가 곧 서 있는 바닥이다.
-func _apply_art(data: Dictionary) -> void:
-	_sprite = get_node_or_null("Sprite2D") as Sprite2D
-	_bar = get_node_or_null("HealthBar") as HealthBar
-	_tex_idle = _load_tex(str(data.get("sprite_idle", "")))
-	_tex_battle = _load_tex(str(data.get("sprite_battle", "")))
-
-	if _sprite == null or _tex_idle == null:
-		# 임시 아트. 스프라이트가 없을 때만.
-		modulate = Color.from_string(str(data.get("debug_color", "")), FALLBACK_COLOR)
-		scale = Vector2.ONE * float(data.get("debug_scale", 1.0))
-		_setup_bar(48.0, 60.0)
-		return
-
-	modulate = Color.WHITE
-	scale = Vector2.ONE
-	_sprite.texture = _tex_idle
-	var s: float = SPRITE_HEIGHT / float(_tex_idle.get_height())
-	_sprite.scale = Vector2(s, s)
-	_sprite.offset = Vector2(0.0, -float(_tex_idle.get_height()) * 0.5)
-	_setup_bar(float(_tex_idle.get_width()) * s, SPRITE_HEIGHT)
-
-
-func _load_tex(path: String) -> Texture2D:
-	if path.is_empty() or not ResourceLoader.exists(path):
-		return null
-	return load(path) as Texture2D
-
-
-## 체력바를 스프라이트 폭에 맞추고 머리 위로 올린다.
-func _setup_bar(sprite_width: float, sprite_height: float) -> void:
-	if _bar == null:
-		return
-	_bar.setup(clampf(sprite_width * 0.9, 34.0, 120.0), -(sprite_height + 12.0))
-	_refresh_bar()
-
-
+## 체력바를 현재 체력에 맞춘다.
 func _refresh_bar() -> void:
-	if _bar != null and max_hp > 0.0:
-		_bar.set_ratio(hp / max_hp)
-
-
-## 공격 순간 잠깐 전투 자세로 바꾼다. 프레임 애니메이션이 아니라 두 장 교체다.
-func _show_attack_pose() -> void:
-	if _sprite == null or _tex_battle == null:
-		return
-	_sprite.texture = _tex_battle
-	_pose_left = ATTACK_POSE_SEC
-
-
-func _tick_pose(delta: float) -> void:
-	if _pose_left <= 0.0:
-		return
-	_pose_left -= delta
-	if _pose_left <= 0.0 and _sprite != null and _tex_idle != null:
-		_sprite.texture = _tex_idle
+	if max_hp > 0.0:
+		_visual.set_hp_ratio(hp / max_hp)
 
 
 ## 타일에 세운다. 이후 이 좌표에서 움직이지 않는다.
@@ -398,9 +340,7 @@ func heal(amount: float) -> void:
 
 
 func _die() -> void:
-	modulate = Color(0.35, 0.35, 0.35, 0.6)   # 쓰러진 가신은 어둡게
-	if _bar != null:
-		_bar.visible = false
+	_visual.mark_dead()
 	_release_all_blockers()
 	died.emit(self)
 
@@ -433,7 +373,7 @@ func _process(delta: float) -> void:
 		return
 
 	_mods.tick(delta)
-	_tick_pose(delta)
+	_visual.tick(delta)
 	_skill.tick(delta)
 
 	if _attack_mode.is_empty():
@@ -482,7 +422,7 @@ func _attack(target: Enemy) -> void:
 			return
 
 	_skill.gain("attack", 1.0)
-	_show_attack_pose()
+	_visual.show_attack()
 	attacked.emit(target, packet)
 
 
