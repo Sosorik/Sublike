@@ -19,10 +19,15 @@ var _finishing: bool = false
 
 ## 숫자를 띄운다. big 이면 치명타라 더 크게 뜬다.
 func show_value(at: Vector2, amount: float, color: Color, big: bool) -> void:
+	show_text(at, str(maxi(1, roundi(amount))), color, big)
+
+
+## 아무 글자나 띄운다. 스킬 이름 표시에 쓴다.
+func show_text(at: Vector2, text: String, color: Color, big: bool) -> void:
 	if label == null:
 		return
 	position = at + Vector2(randf_range(-SPREAD, SPREAD), randf_range(-6.0, 6.0))
-	label.text = str(maxi(1, roundi(amount)))
+	label.text = text
 	label.modulate = color
 	scale = Vector2.ONE * (1.45 if big else 1.0)
 	modulate = Color(1.0, 1.0, 1.0, 1.0)

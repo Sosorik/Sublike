@@ -50,7 +50,7 @@
       "deploy_type": "ground",
       "deploy_cost": 7,
       "attack_type_id": "melee",
-      "skill_id": "focus_fire",
+      "skill_id": "dp_surge",
       "base_stats": {
         "hp": 130.0,
         "atk": 15.0,
@@ -148,7 +148,7 @@
       "deploy_type": "ground",
       "deploy_cost": 11,
       "attack_type_id": "melee",
-      "skill_id": "taunt_wall",
+      "skill_id": "focus_fire",
       "base_stats": {
         "hp": 140.0,
         "atk": 18.0,

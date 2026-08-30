@@ -18,6 +18,9 @@ signal attacked(target: Enemy, packet: DamagePacket)
 ## 쓰러졌다. 저지하던 적들이 다시 전진한다.
 signal died(unit: Unit)
 
+## 고유 스킬이 발동했다. DP 획득처럼 밖에서 처리할 효과는 여기로 나간다.
+signal skill_activated(unit: Unit, skill: Dictionary)
+
 ## setup() 전에 참조될 때만 쓰는 대비값.
 const FALLBACK_COLOR: Color = Color(1.0, 1.0, 1.0, 1.0)
 const FALLBACK_CRIT_MULT: float = 2.0
@@ -85,19 +88,17 @@ var _projectiles_root: Node2D = null
 var _min_damage: float = FALLBACK_MIN_DAMAGE
 var _blockers: Array[Enemy] = []
 
+## 고유 스킬. scripts/combat/unit_skill.gd
+var _skill: UnitSkill = UnitSkill.new()
+
 var _sprite: Sprite2D = null
 var _bar: HealthBar = null
 var _tex_idle: Texture2D = null
 var _tex_battle: Texture2D = null
 var _pose_left: float = 0.0
 
-## 아이다 버프. 각 항목 { type, value, remaining }. 지속시간이 끝나면 사라진다.
-var _buffs: Array[Dictionary] = []
-
-## 부여된 속성. "" 면 무속성. 지속시간이 끝나면 돌아온다.
-var _element: String = ""
-var _element_left: float = 0.0
-var _element_params: Dictionary = {}
+## 버프와 부여 속성. 순수 계산이라 따로 뺐다. scripts/combat/stat_mods.gd
+var _mods: StatMods = StatMods.new()
 
 
 ## data/heroes.json 의 항목 하나를 받아 스탯과 외형을 세팅한다.
@@ -125,13 +126,12 @@ func setup(data: Dictionary) -> void:
 	defense = float(stats.get("defense", 0.0))
 	block_count = int(stats.get("block_count", 0))
 	traits = data.get("traits", {})
-	_buffs.clear()
-	_element = ""
-	_element_left = 0.0
-	_element_params = {}
+	_skill.setup(str(data.get("skill_id", "")))
+	if not _skill.activated.is_connected(_on_skill_activated):
+		_skill.activated.connect(_on_skill_activated)
+	_mods.clear()
 	_min_damage = DataLoader.get_rule("min_damage", FALLBACK_MIN_DAMAGE)
 	_blockers.clear()
-
 	var atype: Dictionary = DataLoader.get_attack_type(attack_type_id)
 	_attack_mode = str(atype.get("mode", ""))
 	_attack_params = atype.get("params", {})
@@ -225,41 +225,106 @@ func undeploy() -> void:
 	_release_all_blockers()
 
 
+## ---------------------------------------------------------------- 고유 스킬
+
+## 스킬 발동 시 즉발 효과를 처리한다. 지속형은 UnitSkill 이 시간을 센다.
+func _on_skill_activated(skill: Dictionary) -> void:
+	var effect: Dictionary = skill.get("effect", {})
+	var duration: float = float(skill.get("duration", 0.0))
+
+	match str(effect.get("type", "")):
+		"atk_mult":
+			apply_buff("atk_mult", float(effect.get("value", 1.0)), duration)
+		"block_up":
+			_skill.begin_duration(
+				int(effect.get("block_add", 0)),
+				float(effect.get("defense_mult", 1.0)),
+				duration
+			)
+		"burst_range":
+			_burst_range(float(effect.get("mult", 1.0)))
+		"dp_gain":
+			pass   # DP 는 Party 가 준다. 아래 시그널로 넘어간다
+		_:
+			push_error("Unit: 모르는 스킬 효과 '%s' (%s)" % [effect.get("type", ""), hero_id])
+
+	Effects.skill_popup(position + Vector2(0.0, -SPRITE_HEIGHT - 26.0), _skill.get_name())
+	skill_activated.emit(self, skill)
+
+
+## 사거리 안의 모든 적을 한 번에 때린다. 즉발.
+func _burst_range(mult: float) -> void:
+	var r: float = get_range()
+	for node in get_tree().get_nodes_in_group(Enemy.GROUP):
+		var enemy: Enemy = node as Enemy
+		if enemy == null or not enemy.is_alive():
+			continue
+		if position.distance_to(enemy.position) > r:
+			continue
+		var packet := DamagePacket.new(get_atk() * mult, false, hero_id)
+		packet.element = _mods.get_element()
+		packet.element_params = _mods.get_element_params()
+		enemy.take_damage(packet)
+
+
+func is_skill_active() -> bool:
+	return _skill.is_active()
+
+
+## SP 충전률 0~1.
+func get_sp_ratio() -> float:
+	return _skill.get_ratio()
+
+
 ## ---------------------------------------------------------------- 버프 / 속성
 
-## 아이다 버프를 건다. 같은 종류가 겹치면 곱해진다 (버프 2개를 동시에 쓸 수 없어 지금은 무의미).
+## 아이다 버프를 건다.
 func apply_buff(type: String, value: float, duration: float) -> void:
-	_buffs.append({ "type": type, "value": value, "remaining": duration })
+	_mods.add_buff(type, value, duration)
 
 
 ## 속성을 부여한다. 이후 이 가신의 공격에 element 와 그 수치가 실린다.
-## params 는 aida_skills.json 의 effect 블록이다. 맞는 쪽이 읽어서 처리한다.
 func apply_element(element: String, duration: float, params: Dictionary) -> void:
-	_element = element
-	_element_left = maxf(_element_left, duration)
-	_element_params = params
+	_mods.set_element(element, duration, params)
 
 
-## 부여된 속성의 표시색. 없으면 빈 문자열.
 func get_element_color() -> String:
-	return str(_element_params.get("vfx_color", ""))
+	return _mods.get_element_color()
 
 
 ## 버프가 적용된 실효 수치. 공격 로직은 반드시 이 getter 를 쓴다.
 func get_atk() -> float:
-	return atk * _mult_of("atk_mult") * run_atk_mult
+	return atk * _mods.mult_of("atk_mult") * run_atk_mult
 
 
 func get_atk_speed() -> float:
-	return atk_speed * _mult_of("atk_speed_mult") * run_atk_speed_mult
+	return atk_speed * _mods.mult_of("atk_speed_mult") * run_atk_speed_mult
 
 
 func get_crit() -> float:
-	return clampf(crit + _sum_of("crit_add"), 0.0, 1.0)
+	return clampf(crit + _mods.sum_of("crit_add"), 0.0, 1.0)
 
 
 func get_range() -> float:
-	return atk_range * _mult_of("range_mult") * run_range_mult
+	return atk_range * _mods.mult_of("range_mult") * run_range_mult
+
+
+func get_element() -> String:
+	return _mods.get_element()
+
+
+## 스킬로 늘어난 저지 수를 포함한 실효 저지 수.
+func get_block_count() -> int:
+	return block_count + _skill.block_bonus
+
+
+## 스킬로 오른 방어력.
+func get_defense() -> float:
+	return defense * _skill.defense_mult
+
+
+func has_buff() -> bool:
+	return _mods.has_buff()
 
 
 ## 런 내 강화를 반영한다. 누적값을 통째로 다시 넣는 방식이라 여러 번 불러도 안전하다.
@@ -280,49 +345,11 @@ func set_run_modifiers(atk_mult: float, aspd_mult: float, range_mult: float, hp_
 		_refresh_bar()
 
 
-func get_element() -> String:
-	return _element
-
-
-func has_buff() -> bool:
-	return not _buffs.is_empty()
-
-
-func _mult_of(type: String) -> float:
-	var out: float = 1.0
-	for b in _buffs:
-		if b["type"] == type:
-			out *= float(b["value"])
-	return out
-
-
-func _sum_of(type: String) -> float:
-	var out: float = 0.0
-	for b in _buffs:
-		if b["type"] == type:
-			out += float(b["value"])
-	return out
-
-
-func _tick_buffs(delta: float) -> void:
-	if not _buffs.is_empty():
-		for i in range(_buffs.size() - 1, -1, -1):
-			_buffs[i]["remaining"] = float(_buffs[i]["remaining"]) - delta
-			if float(_buffs[i]["remaining"]) <= 0.0:
-				_buffs.remove_at(i)
-
-	if _element_left > 0.0:
-		_element_left -= delta
-		if _element_left <= 0.0:
-			_element = ""
-			_element_params = {}
-
-
 ## ---------------------------------------------------------------- 저지
 
 ## 적이 저지를 요청한다. 자리가 있으면 받아 준다.
 func try_block(enemy: Enemy) -> bool:
-	if not is_alive() or _blockers.size() >= block_count:
+	if not is_alive() or _blockers.size() >= get_block_count():
 		return false
 	if enemy in _blockers:
 		return true
@@ -346,8 +373,9 @@ func take_damage(packet: DamagePacket) -> void:
 	if packet == null or not is_alive():
 		return
 
-	var dealt: float = maxf(_min_damage, packet.base - defense)
+	var dealt: float = maxf(_min_damage, packet.base - get_defense())
 	hp -= dealt
+	_skill.gain("hit", 1.0)
 	_refresh_bar()
 
 	if not packet.silent_number:
@@ -404,8 +432,9 @@ func _process(delta: float) -> void:
 	if not is_alive():
 		return
 
-	_tick_buffs(delta)
+	_mods.tick(delta)
 	_tick_pose(delta)
+	_skill.tick(delta)
 
 	if _attack_mode.is_empty():
 		return
@@ -452,6 +481,7 @@ func _attack(target: Enemy) -> void:
 			push_error("Unit: 아직 구현하지 않은 공격 모드 '%s' (%s)" % [_attack_mode, hero_id])
 			return
 
+	_skill.gain("attack", 1.0)
 	_show_attack_pose()
 	attacked.emit(target, packet)
 
@@ -461,8 +491,8 @@ func _make_packet() -> DamagePacket:
 	var is_crit: bool = randf() < get_crit()
 	var base: float = get_atk() * (_crit_mult if is_crit else 1.0)
 	var packet := DamagePacket.new(base, is_crit, hero_id)
-	packet.element = _element
-	packet.element_params = _element_params
+	packet.element = _mods.get_element()
+	packet.element_params = _mods.get_element_params()
 	return packet
 
 

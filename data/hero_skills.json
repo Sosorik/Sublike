@@ -1,8 +1,65 @@
 {
-  "_comment": "가신 고유 스킬. 자동 발동 + 컷인. 15종 목표, 나머지는 파라미터 차별.",
+  "_comment": "가신 고유 스킬. 명일방주 방식 — SP 가 차면 자동 발동한다.",
+  "_schema": {
+    "sp_cost": "발동에 필요한 SP",
+    "sp_recovery": "auto=초당 1 | attack=공격할 때 1 | hit=맞을 때 1  (명일방주 3종 그대로)",
+    "sp_initial": "전장에 나올 때 들고 시작하는 SP",
+    "duration": "지속시간(초). 0이면 즉발",
+    "effect.type": "atk_mult | block_up | burst_range | dp_gain"
+  },
   "hero_skills": [
-    { "id": "taunt_wall",  "name": "방벽",     "cooldown": 15.0, "effect": { "type": "block_advance", "duration": 3.0 } },
-    { "id": "focus_fire",  "name": "집중사격", "cooldown": 12.0, "effect": { "type": "burst_damage", "mult": 3.0, "shots": 3 } },
-    { "id": "line_volley", "name": "일제사격", "cooldown": 14.0, "effect": { "type": "lane_damage", "mult": 2.0 } }
+    {
+      "id": "taunt_wall",
+      "name": "방벽",
+      "sp_cost": 22.0,
+      "sp_recovery": "hit",
+      "sp_initial": 6.0,
+      "duration": 8.0,
+      "effect": {
+        "type": "block_up",
+        "block_add": 2,
+        "defense_mult": 2.0
+      },
+      "note": "맞을수록 빨리 찬다. 몰릴 때 알아서 터진다"
+    },
+    {
+      "id": "focus_fire",
+      "name": "집중사격",
+      "sp_cost": 18.0,
+      "sp_recovery": "attack",
+      "sp_initial": 4.0,
+      "duration": 6.0,
+      "effect": {
+        "type": "atk_mult",
+        "value": 2.0
+      },
+      "note": "때릴수록 빨리 찬다"
+    },
+    {
+      "id": "line_volley",
+      "name": "일제사격",
+      "sp_cost": 28.0,
+      "sp_recovery": "auto",
+      "sp_initial": 8.0,
+      "duration": 0.0,
+      "effect": {
+        "type": "burst_range",
+        "mult": 2.2
+      },
+      "note": "즉발. 사거리 안 모든 적을 한 번에 때린다"
+    },
+    {
+      "id": "dp_surge",
+      "name": "돌격 신호",
+      "sp_cost": 16.0,
+      "sp_recovery": "attack",
+      "sp_initial": 4.0,
+      "duration": 0.0,
+      "effect": {
+        "type": "dp_gain",
+        "value": 8.0
+      },
+      "note": "선봉 전용. 명일방주 뱅가드 스킬이 DP를 버는 것과 같다"
+    }
   ]
 }

@@ -14,6 +14,7 @@ const HIT_SCENE: String = "res://scenes/effects/hit_effect.tscn"
 const COLOR_ENEMY_HIT: Color = Color(1.0, 0.95, 0.85)   ## 적이 맞았다
 const COLOR_ALLY_HIT: Color = Color(1.0, 0.55, 0.5)     ## 가신·아이다가 맞았다
 const COLOR_CRIT: Color = Color(1.0, 0.85, 0.3)         ## 치명타
+const COLOR_SKILL: Color = Color(0.65, 0.95, 1.0)       ## 가신 고유 스킬 발동
 
 var _root: Node2D = null
 var _number_scene: PackedScene = null
@@ -47,6 +48,20 @@ func damage(at: Vector2, amount: float, color: Color = COLOR_ENEMY_HIT, is_crit:
 		n.expired.connect(_on_number_expired)
 	_root.add_child(n)
 	n.show_value(at, amount, COLOR_CRIT if is_crit else color, is_crit)
+
+
+## 가신 고유 스킬이 터졌을 때 이름을 띄운다. 아이다 컷인과 달리 조용한 표시다.
+func skill_popup(at: Vector2, text: String) -> void:
+	if _root == null or _number_scene == null or text.is_empty():
+		return
+	var n: DamageNumber = ObjectPool.acquire(_number_scene) as DamageNumber
+	if n == null:
+		return
+	if not n.expired.is_connected(_on_number_expired):
+		n.expired.connect(_on_number_expired)
+	_root.add_child(n)
+	n.show_text(at, text, COLOR_SKILL, true)
+	_burst(at, COLOR_SKILL, 1.3, 14)
 
 
 ## 피격 파티클.

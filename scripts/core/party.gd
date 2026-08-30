@@ -207,6 +207,7 @@ func deploy(hero_id: String, lane: String, column: int) -> Unit:
 	unit.deploy_cost = cost   # 철수 환급은 **낸 값** 기준이다
 	unit.set_projectile_source(projectile_scene, projectiles_root)
 	unit.died.connect(_on_unit_died)
+	unit.skill_activated.connect(_on_unit_skill)
 	units_root.add_child(unit)
 	unit.place_at(lane, column)
 
@@ -320,6 +321,21 @@ func _key(lane: String, column: int) -> String:
 func _forget(unit: Unit) -> void:
 	_units.erase(unit)
 	_by_tile.erase(_key(unit.lane, unit.column))
+
+
+## 가신 고유 스킬 중 밖에서 처리해야 하는 것. 지금은 DP 획득뿐이다.
+## 명일방주 뱅가드 스킬이 DP를 버는 것과 같은 역할이다.
+func _on_unit_skill(unit: Unit, skill: Dictionary) -> void:
+	var effect: Dictionary = skill.get("effect", {})
+	if str(effect.get("type", "")) != "dp_gain":
+		return
+	var gain: float = float(effect.get("value", 0.0))
+	if gain <= 0.0:
+		return
+	_dp = minf(_dp_max, _dp + gain)
+	dp_changed.emit(_dp, _dp_max)
+	dp_earned.emit(unit, gain)
+	print("스킬 — %s '%s' → DP +%.0f" % [unit.display_name, skill.get("name", ""), gain])
 
 
 func _on_unit_died(unit: Unit) -> void:
